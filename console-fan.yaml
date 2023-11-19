@@ -136,11 +136,11 @@ text_sensor:
   # Send IP Address
   - platform: wifi_info
     ip_address:
-      name: "$friendly_name IP Address"
+      name: "${friendly_name} IP Address"
 
   # Send Uptime in raw seconds
   - platform: template
-    name: "$friendly_name Uptime"
+    name: "${friendly_name} Uptime"
     id: uptime_human
     icon: mdi:clock-start
 
@@ -148,13 +148,13 @@ sensor:
 
   # Send WiFi signal strength & uptime to HA
   - platform: wifi_signal
-    name: "$friendly_name WiFi Strength"
+    name: "${friendly_name} WiFi Strength"
     update_interval: 60s
 
   # This is a bit of overkill. It sends a human readable
   # uptime string 1h 41m 32s instead of 6092 seconds
   - platform: uptime
-    name: "$friendly_name Uptime"
+    name: "${friendly_name} Uptime"
     id: uptime_sensor
     update_interval: 60s
     on_raw_value:
@@ -189,11 +189,12 @@ sensor:
         pullup: true
     unit_of_measurement: 'RPM'
     id: console_get_fan_speed
-    name: "$friendly_name current Fan Speed"
+    name: "${friendly_name} current speed"
     # default update_interval 60s, missing in the logs otherwise
     update_interval: 5s
     accuracy_decimals: 0
     filters:
+      # check the specs, compare with this value
       - multiply: 0.5  # Depending on how many pulses the fan sends per round - should be 0.5 or 1 - try...
 
 
@@ -201,36 +202,36 @@ sensor:
   # START THE FAN CONTROLLER SETUP
 
   - platform: template
-    name: "$friendly_name p term"
+    name: "${friendly_name} p term"
     id: p_term
     unit_of_measurement: "%"
     accuracy_decimals: 2
 
   - platform: template
-    name: "$friendly_name i term"
+    name: "${friendly_name} i term"
     id: i_term
     unit_of_measurement: "%"
     accuracy_decimals: 2
 
   - platform: template
-    name: "$friendly_name d term"
+    name: "${friendly_name} d term"
     id: d_term
     unit_of_measurement: "%"
     accuracy_decimals: 2
 
   - platform: template
-    name: "$friendly_name output value"
+    name: "${friendly_name} output value"
     unit_of_measurement: "%"
     id: o_term
     accuracy_decimals: 2
 
   - platform: template
-    name: "$friendly_name error value"
+    name: "${friendly_name} error value"
     id: e_term
     accuracy_decimals: 2
 
   - platform: template
-    name: "$friendly_name is in deadband"
+    name: "${friendly_name} is in deadband"
     id: in_deadband_term
     accuracy_decimals: 0
 
@@ -301,13 +302,13 @@ output:
 # fan:
 #   - platform: speed
 #     output: console_set_fan_speed
-#     name: "Console Fan Speed"
+#     name: "${friendly_name} Speed"
 
 # Expose a PID-controlled Thermostat
 # Manual: https://esphome.io/components/climate/pid.html
 climate:
   - platform: pid
-    name: "Console Fan Thermostat"
+    name: "${friendly_name} Thermostat"
     id: console_thermostat
     sensor: console_fan_temperature
 
