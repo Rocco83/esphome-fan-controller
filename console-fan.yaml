@@ -235,28 +235,6 @@ sensor:
     id: in_deadband_term
     accuracy_decimals: 0
 
-#  # GET TEMP/HUMIDITY FROM DHT11
-#  - platform: dht
-#    pin: GPIO33
-#    temperature:
-#      name: "Temperature"
-#      id: console_fan_temperature
-#      accuracy_decimals: 3
-#
-#      # If you don't smooth the temperature readings
-#      # the PID controller over reacts to small changes.
-#      filters:
-#         - exponential_moving_average:
-#             alpha: 0.1
-#             send_every: 1
-#
-#    humidity:
-#      name: "Humidity"
-#      id: console_fan_humidity
-#
-#    # the DHT11 can only be read every 1s. Use 1.3s to be safe.
-#    update_interval: 1.3s
-
   - platform: custom
     lambda: |-
       auto sht20 = new SHT20();
@@ -265,7 +243,7 @@ sensor:
     sensors:
       - name: "Temperature"
         id: console_fan_temperature
-        unit_of_measurement: °C
+        unit_of_measurement: "°C"
         accuracy_decimals: 3
       - name: "Humidity"
         id: console_fan_humidity
