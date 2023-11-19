@@ -291,10 +291,10 @@ output:
 
     # my fans stop working below 13% powerful.
     # also they're  powerful and loud, cap their max speed to 80%
-    min_power: 13%
-    max_power: 80%
-    # min_power: 0%
-    # max_power: 100%
+    # min_power: 13%
+    # max_power: 80%
+    min_power: 0%
+    max_power: 100%
 
 # Good for debugging, you can manually set the fan
 # speed. Just make sure the Climate device is set to off or it will keep getting overridden.
