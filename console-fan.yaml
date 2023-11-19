@@ -190,6 +190,8 @@ sensor:
     unit_of_measurement: 'RPM'
     id: console_get_fan_speed
     name: "$friendly_name current Fan Speed"
+    # default update_interval 60s, missing in the logs otherwise
+    update_interval: 5s
     accuracy_decimals: 0
     filters:
       - multiply: 0.5  # Depending on how many pulses the fan sends per round - should be 0.5 or 1 - try...
