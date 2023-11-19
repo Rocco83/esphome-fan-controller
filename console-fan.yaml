@@ -1,14 +1,22 @@
 substitutions:
-  friendly_name: AC Rack Fan
+  friendly_name: Console Fan
 
 esphome:
-  name: acrack-fan
+  name: console-fan
+
+  # SHT20 as by https://github.com/esphome/feature-requests/issues/476#issuecomment-743998849
+  libraries:
+    - "Wire"
+    - "uFire SHT20"
+    - "ArduinoJson"
+  includes:
+    - include/sht20.h
 
 # Throttle writing parameters to the internal flash memory to reduce ESP memory wear / degradation
 preferences:
   flash_write_interval: 15min
 
- 
+
 #########################
 # ESP32 AND NETWORK SETUP
 
@@ -20,7 +28,7 @@ esp32:
 # pid climate log update is noisy, dial it back to warn
 logger:
   level: DEBUG
-  logs: 
+  logs:
     climate: ERROR
     dht: WARN
 
@@ -35,12 +43,19 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
+# needed for sht20
+i2c:
+  sda: 21
+  scl: 22
+  scan: true
+  frequency: 200kHz
+
 number:
 
   ## OPTIONAL:
-  # RECEIVE KP, KI and KD parameters from input_text.kx helpers in 
+  # RECEIVE KP, KI and KD parameters from input_text.kx helpers in
   # Home Assistant. See the PID controller below
-  # These helper values will get saved to flash thus permanently over-riding 
+  # These helper values will get saved to flash thus permanently over-riding
   # the initial values set in the PID below.
 
   # KP
@@ -52,9 +67,9 @@ number:
     min_value: 0
     max_value: 50
     step: 0.001
-    set_action: 
-      lambda: |- 
-        id(acrack_thermostat).set_kp( x );
+    set_action:
+      lambda: |-
+        id(console_thermostat).set_kp( x );
 
   # KI
   - platform: template
@@ -65,8 +80,8 @@ number:
     min_value: 0
     max_value: 50
     step: 0.0001
-    set_action: 
-      lambda: id(acrack_thermostat).set_ki( x );
+    set_action:
+      lambda: id(console_thermostat).set_ki( x );
 
   # KD
   - platform: template
@@ -77,8 +92,8 @@ number:
     min_value: -50
     max_value: 50
     step: 0.001
-    set_action: 
-      lambda: id(acrack_thermostat).set_kd( x );
+    set_action:
+      lambda: id(console_thermostat).set_kd( x );
 
   # Set threshold low
   - platform: template
@@ -89,8 +104,8 @@ number:
     min_value: -20
     max_value: 0
     step: 0.1
-    set_action: 
-      lambda: id(acrack_thermostat).set_threshold_low( x );
+    set_action:
+      lambda: id(console_thermostat).set_threshold_low( x );
 
   # Set threshold high
   - platform: template
@@ -101,8 +116,8 @@ number:
     min_value: 0
     max_value: 20
     step: 0.1
-    set_action: 
-      lambda: id(acrack_thermostat).set_threshold_high( x );
+    set_action:
+      lambda: id(console_thermostat).set_threshold_high( x );
 
   # Set ki multiplier
   - platform: template
@@ -113,8 +128,8 @@ number:
     min_value: 0
     max_value: .2
     step: 0.01
-    set_action: 
-      lambda: id(acrack_thermostat).set_ki_multiplier( x );
+    set_action:
+      lambda: id(console_thermostat).set_ki_multiplier( x );
 
 text_sensor:
 
@@ -136,7 +151,7 @@ sensor:
     name: $friendly_name WiFi Strength
     update_interval: 60s
 
-  # This is a bit of overkill. It sends a human readable 
+  # This is a bit of overkill. It sends a human readable
   # uptime string 1h 41m 32s instead of 6092 seconds
   - platform: uptime
     name: $friendly_name Uptime
@@ -165,19 +180,23 @@ sensor:
   # Read the Tacho PIN and show measured RPM as a sensor (only with 4-pin PWM fans!)
 
   - platform: pulse_counter
-    pin: 
-      number: GPIO4   # Connect to any input PIN on the ESP
-      mode: INPUT_PULLUP
+    pin:
+      # number: GPIO25 # Connect to any input PIN on the ESP
+      number: GPIO14 # Connect to any input PIN on the ESP
+      # mode: INPUT_PULLUP
+      mode:
+        input: true
+        pullup: true
     unit_of_measurement: 'RPM'
-    id: fan_speed
-    name: $friendly_name Fan Speed
+    id: console_get_fan_speed
+    name: $friendly_name current Fan Speed
     accuracy_decimals: 0
     filters:
       - multiply: 0.5  # Depending on how many pulses the fan sends per round - should be 0.5 or 1 - try...
 
 
-########################################################
-# START THE FAN CONTROLLER SETUP
+  ########################################################
+  # START THE FAN CONTROLLER SETUP
 
   - platform: template
     name: $friendly_name p term
@@ -213,55 +232,73 @@ sensor:
     id: in_deadband_term
     accuracy_decimals: 0
 
-  # GET TEMP/HUMIDITY FROM DHT11
-  - platform: dht
-    pin: GPIO33
-    temperature:
-      name: "Temperature"
-      id: acrack_fan_temperature
-      accuracy_decimals: 3
+#  # GET TEMP/HUMIDITY FROM DHT11
+#  - platform: dht
+#    pin: GPIO33
+#    temperature:
+#      name: "Temperature"
+#      id: console_fan_temperature
+#      accuracy_decimals: 3
+#
+#      # If you don't smooth the temperature readings
+#      # the PID controller over reacts to small changes.
+#      filters:
+#         - exponential_moving_average:
+#             alpha: 0.1
+#             send_every: 1
+#
+#    humidity:
+#      name: "Humidity"
+#      id: console_fan_humidity
+#
+#    # the DHT11 can only be read every 1s. Use 1.3s to be safe.
+#    update_interval: 1.3s
 
-      # If you don't smooth the temperature readings 
-      # the PID controller over reacts to small changes.
-      filters:
-         - exponential_moving_average:  
-             alpha: 0.1
-             send_every: 1
+  - platform: custom
+    lambda: |-
+      auto sht20 = new SHT20();
+      App.register_component(sht20);
+      return {sht20->temperature_sensor, sht20->humidity_sensor, sht20->vpd_sensor, sht20->dew_point_sensor};
+    sensors:
+      - name: "Temperature"
+        id: console_fan_temperature
+        unit_of_measurement: °C
+        accuracy_decimals: 3
+      - name: "Humidity"
+        id: console_fan_humidity
+        unit_of_measurement: "%"
+        accuracy_decimals: 3
 
-    humidity:
-      name: "Humidity"
-      id: acrack_fan_humidity
-
-    # the DHT11 can only be read every 1s. Use 1.3s to be safe.
-    update_interval: 1.3s
-
-  # Take the "COOL" value of the pid and send 
+  # Take the "COOL" value of the pid and send
   # it to the frontend to graph the output voltage
   - platform: pid
-    name: "Fan Speed (PWM Voltage)"
-    climate_id: acrack_thermostat
+    name: "Fan Speed set (PWM Voltage)"
+    climate_id: console_thermostat
     type: COOL
 
 output:
   # Wire this pin (13) into the PWM pin of your 12v fan
   # ledc is the name of the pwm output system on an esp32
   - platform: ledc
-    id: acrack_fan_speed
-    pin: GPIO0
+    id: console_set_fan_speed
+    pin: GPIO13
+    # name: "Output Fan Speed" # invalid for output
 
     # 25KHz is standard PC fan frequency, minimises buzzing
-    frequency: "25000 Hz" 
+    frequency: "25000 Hz"
 
     # my fans stop working below 13% powerful.
     # also they're  powerful and loud, cap their max speed to 80%
-    min_power: 0%
+    min_power: 13%
     max_power: 80%
+    # min_power: 0%
+    # max_power: 100%
 
-# Good for debugging, you can manually set the fan 
+# Good for debugging, you can manually set the fan
 # speed. Just make sure the Climate device is set to off or it will keep getting overridden.
 # fan:
 #   - platform: speed
-#     output: acrack_fan_speed
+#     output: console_set_fan_speed
 #     name: "Console Fan Speed"
 
 # Expose a PID-controlled Thermostat
@@ -269,40 +306,40 @@ output:
 climate:
   - platform: pid
     name: "Console Fan Thermostat"
-    id: acrack_thermostat
-    sensor: acrack_fan_temperature
+    id: console_thermostat
+    sensor: console_fan_temperature
 
     # It is summer right now, so 30c is a decent target.
     default_target_temperature: 30°C
-    cool_output: acrack_fan_speed
+    cool_output: console_set_fan_speed
 
-    # ON state change, publish the values to the x_term numbers defined 
+    # ON state change, publish the values to the x_term numbers defined
     # above, so that they can be viewed in HA
     on_state:
       - sensor.template.publish:
           id: p_term
-          state: !lambda 'return -id(acrack_thermostat).get_proportional_term() * 100.0;'
+          state: !lambda 'return -id(console_thermostat).get_proportional_term() * 100.0;'
       - sensor.template.publish:
           id: i_term
-          state: !lambda 'return -id(acrack_thermostat).get_integral_term()* 100.0;'
+          state: !lambda 'return -id(console_thermostat).get_integral_term()* 100.0;'
       - sensor.template.publish:
           id: d_term
-          state: !lambda 'return -id(acrack_thermostat).get_derivative_term()* 100.0;'
+          state: !lambda 'return -id(console_thermostat).get_derivative_term()* 100.0;'
       - sensor.template.publish:
           id: o_term
-          state: !lambda 'return -id(acrack_thermostat).get_output_value()* 100.0;'
+          state: !lambda 'return -id(console_thermostat).get_output_value()* 100.0;'
       - sensor.template.publish:
           id: in_deadband_term
-          state: !lambda 'return id(acrack_thermostat).in_deadband();'
+          state: !lambda 'return id(console_thermostat).in_deadband();'
       - sensor.template.publish:
           id: e_term
-          state: !lambda 'return -id(acrack_thermostat).get_error_value();'
-        
+          state: !lambda 'return -id(console_thermostat).get_error_value();'
+
     # The extents of the HA Thermostat
     visual:
       min_temperature: 20 °C
       max_temperature: 50 °C
-  
+
     # See the README for setting up these parameters.
     # These are over ridden by the number templates above.
     control_parameters:
@@ -326,29 +363,28 @@ switch:
   # Expose an ESP32 restart button to HA
   - platform: restart
     name: ${friendly_name} ESP32 Restart
-    id: acrack_fan_restart
+    id: console_fan_restart
 
-# Restart every day at 12:30am. 
-# I've had some memory issues lockup 
+# Restart every day at 12:30am.
+# I've had some memory issues lockup
 # the device after a couple weeks
 time:
   - platform: homeassistant
     on_time:
       # Every morning at 12:30am
-    - seconds: 0
-      minutes: 30
-      hours: 0
-      then:
-       - switch.turn_on: acrack_fan_restart
+      - seconds: 0
+        minutes: 30
+        hours: 0
+        then:
+          - switch.turn_on: console_fan_restart
 
 
 # I was able to find good KP,KI,KD values manually, per the instructions,
-# but you can try pressing the autotune button from home assistant and copying the 
-# values it produces. 
+# but you can try pressing the autotune button from home assistant and copying the
+# values it produces.
 # See more at: https://esphome.io/components/climate/pid.html#climate-pid-autotune-action
 button:
-- platform: template
-  name: "PID Climate Autotune"
-  on_press: 
-    - climate.pid.autotune: acrack_thermostat
-    
+  - platform: template
+    name: "PID Climate Autotune"
+    on_press:
+      - climate.pid.autotune: console_thermostat
