@@ -1,8 +1,8 @@
 substitutions:
-  friendly_name: "Console Fan"
+  friendly_name: "Rack Fan"
 
 esphome:
-  name: console-fan
+  name: rack-fan
 
   # SHT20 as by https://github.com/esphome/feature-requests/issues/476#issuecomment-743998849
   libraries:
@@ -30,11 +30,15 @@ logger:
   level: DEBUG
   logs:
     climate: ERROR
-    #dht: WARN
+    # component includes the custom component, which file the error "Components should block for at most 20-30ms."
+    # https://github.com/esphome/issues/issues/4717
+    component: ERROR
 
 # default HA integration, OTA updater and backup http web portal
 api:
+  # password: !secret device_password
 ota:
+  # password: !secret device_password
 wifi:
 
   # Read the wifi/pass from secrets.yaml:
@@ -48,7 +52,7 @@ i2c:
   sda: 21
   scl: 22
   scan: true
-  frequency: 200kHz
+  frequency: 400kHz
 
 number:
 
@@ -69,7 +73,7 @@ number:
     step: 0.001
     set_action:
       lambda: |-
-        id(console_thermostat).set_kp( x );
+        id(automate_thermostat).set_kp( x );
 
   # KI
   - platform: template
@@ -81,7 +85,7 @@ number:
     max_value: 50
     step: 0.0001
     set_action:
-      lambda: id(console_thermostat).set_ki( x );
+      lambda: id(automate_thermostat).set_ki( x );
 
   # KD
   - platform: template
@@ -93,7 +97,7 @@ number:
     max_value: 50
     step: 0.001
     set_action:
-      lambda: id(console_thermostat).set_kd( x );
+      lambda: id(automate_thermostat).set_kd( x );
 
   # Set threshold low
   - platform: template
@@ -105,7 +109,7 @@ number:
     max_value: 0
     step: 0.1
     set_action:
-      lambda: id(console_thermostat).set_threshold_low( x );
+      lambda: id(automate_thermostat).set_threshold_low( x );
 
   # Set threshold high
   - platform: template
@@ -117,7 +121,7 @@ number:
     max_value: 20
     step: 0.1
     set_action:
-      lambda: id(console_thermostat).set_threshold_high( x );
+      lambda: id(automate_thermostat).set_threshold_high( x );
 
   # Set ki multiplier
   - platform: template
@@ -129,7 +133,7 @@ number:
     max_value: .2
     step: 0.01
     set_action:
-      lambda: id(console_thermostat).set_ki_multiplier( x );
+      lambda: id(automate_thermostat).set_ki_multiplier( x );
 
 text_sensor:
 
@@ -188,7 +192,7 @@ sensor:
         input: true
         pullup: true
     unit_of_measurement: 'RPM'
-    id: console_get_fan_speed
+    id: automate_get_fan_speed
     name: "${friendly_name} current speed"
     # default update_interval 60s, missing in the logs otherwise
     update_interval: 5s
@@ -236,32 +240,41 @@ sensor:
     accuracy_decimals: 0
 
   - platform: custom
+    # the number in SHT20() is the update_interval
     lambda: |-
-      auto sht20 = new SHT20();
+      auto sht20 = new SHT20(5000);
       App.register_component(sht20);
       return {sht20->temperature_sensor, sht20->humidity_sensor, sht20->vpd_sensor, sht20->dew_point_sensor};
     sensors:
       - name: "Temperature"
-        id: console_fan_temperature
+        id: automate_fan_temperature
         unit_of_measurement: "°C"
         accuracy_decimals: 3
       - name: "Humidity"
-        id: console_fan_humidity
+        id: automate_fan_humidity
         unit_of_measurement: "%"
+        accuracy_decimals: 3
+      - name: "VPD (vapor pressure deficit)"
+        id: automate_fan_vpd
+        unit_of_measurement: ""
+        accuracy_decimals: 3
+      - name: "DEW Point"
+        id: automate_fan_dewpoint
+        unit_of_measurement: "°C"
         accuracy_decimals: 3
 
   # Take the "COOL" value of the pid and send
   # it to the frontend to graph the output voltage
   - platform: pid
     name: "Fan Speed set (PWM Voltage)"
-    climate_id: console_thermostat
+    climate_id: automate_thermostat
     type: COOL
 
 output:
   # Wire this pin (13) into the PWM pin of your 12v fan
   # ledc is the name of the pwm output system on an esp32
   - platform: ledc
-    id: console_set_fan_speed
+    id: automate_set_fan_speed
     pin: GPIO13
     # name: "Output Fan Speed" # invalid for output
 
@@ -279,7 +292,7 @@ output:
 # speed. Just make sure the Climate device is set to off or it will keep getting overridden.
 # fan:
 #   - platform: speed
-#     output: console_set_fan_speed
+#     output: automate_set_fan_speed
 #     name: "${friendly_name} Speed"
 
 # Expose a PID-controlled Thermostat
@@ -287,34 +300,34 @@ output:
 climate:
   - platform: pid
     name: "${friendly_name} Thermostat"
-    id: console_thermostat
-    sensor: console_fan_temperature
+    id: automate_thermostat
+    sensor: automate_fan_temperature
 
     # It is summer right now, so 30c is a decent target.
     default_target_temperature: 30°C
-    cool_output: console_set_fan_speed
+    cool_output: automate_set_fan_speed
 
     # ON state change, publish the values to the x_term numbers defined
     # above, so that they can be viewed in HA
     on_state:
       - sensor.template.publish:
           id: p_term
-          state: !lambda 'return -id(console_thermostat).get_proportional_term() * 100.0;'
+          state: !lambda 'return -id(automate_thermostat).get_proportional_term() * 100.0;'
       - sensor.template.publish:
           id: i_term
-          state: !lambda 'return -id(console_thermostat).get_integral_term()* 100.0;'
+          state: !lambda 'return -id(automate_thermostat).get_integral_term()* 100.0;'
       - sensor.template.publish:
           id: d_term
-          state: !lambda 'return -id(console_thermostat).get_derivative_term()* 100.0;'
+          state: !lambda 'return -id(automate_thermostat).get_derivative_term()* 100.0;'
       - sensor.template.publish:
           id: o_term
-          state: !lambda 'return -id(console_thermostat).get_output_value()* 100.0;'
+          state: !lambda 'return -id(automate_thermostat).get_output_value()* 100.0;'
       - sensor.template.publish:
           id: in_deadband_term
-          state: !lambda 'return id(console_thermostat).in_deadband();'
+          state: !lambda 'return id(automate_thermostat).in_deadband();'
       - sensor.template.publish:
           id: e_term
-          state: !lambda 'return -id(console_thermostat).get_error_value();'
+          state: !lambda 'return -id(automate_thermostat).get_error_value();'
 
     # The extents of the HA Thermostat
     visual:
@@ -344,7 +357,7 @@ switch:
   # Expose an ESP32 restart button to HA
   - platform: restart
     name: "${friendly_name} ESP32 Restart"
-    id: console_fan_restart
+    id: automate_fan_restart
 
 # Restart every day at 12:30am.
 # I've had some memory issues lockup
@@ -357,7 +370,7 @@ time:
         minutes: 30
         hours: 0
         then:
-          - switch.turn_on: console_fan_restart
+          - switch.turn_on: automate_fan_restart
 
 
 # I was able to find good KP,KI,KD values manually, per the instructions,
@@ -368,4 +381,4 @@ button:
   - platform: template
     name: "PID Climate Autotune"
     on_press:
-      - climate.pid.autotune: console_thermostat
+      - climate.pid.autotune: automate_thermostat

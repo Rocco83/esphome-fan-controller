@@ -14,7 +14,7 @@ class SHT20 : public PollingComponent {
   // Stay on the safe side by polling every five seconds,
   // because the calls to vpd() and dew_point() also measure
   // the temperature.
-  SHT20() : PollingComponent(5000) { }
+  SHT20(uint32_t update_interval) : PollingComponent(update_interval) { }
 
   void setup() override {
     if(!sht20.begin()) {
