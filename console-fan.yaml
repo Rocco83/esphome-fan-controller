@@ -4,14 +4,6 @@ substitutions:
 esphome:
   name: rack-fan
 
-  # SHT20 as by https://github.com/esphome/feature-requests/issues/476#issuecomment-743998849
-  libraries:
-    - "Wire"
-    - "uFire SHT20"
-    - "ArduinoJson"
-  includes:
-    - include/sht20.h
-
 # Throttle writing parameters to the internal flash memory to reduce ESP memory wear / degradation
 preferences:
   flash_write_interval: 15min
@@ -33,16 +25,20 @@ logger:
     # component includes the custom component, which file the error "Components should block for at most 20-30ms."
     # https://github.com/esphome/issues/issues/4717
     component: ERROR
+    # replacement of dht
+    htu21d: WARN
 
 # default HA integration, OTA updater and backup http web portal
 api:
   # password: !secret device_password
-#  encryption:
-#    key: "YOUR_ENCRYPTION_KEY"
+  #encryption:
+  #  key: "YOUR_ENCRYPTION_KEY"
+
 ota:
   - platform: esphome
   # password: !secret device_password
   # change to https://esphome.io/components/ota/http_request ?
+
 wifi:
   # Read the wifi/pass from secrets.yaml:
   # wifi_ssid: "My Wifi XX"
@@ -56,7 +52,6 @@ web_server:
 
 # https://esphome.io/components/captive_portal.html
 #captive_portal:
-
 
 # needed for sht20
 i2c:
@@ -82,9 +77,10 @@ number:
     min_value: 0
     max_value: 50
     step: 0.001
+    optimistic: true
     set_action:
       lambda: |-
-        id(automate_thermostat).set_kp( x );
+        id(console_thermostat).set_kp( x );
 
   # KI
   - platform: template
@@ -95,8 +91,9 @@ number:
     min_value: 0
     max_value: 50
     step: 0.0001
+    optimistic: true
     set_action:
-      lambda: id(automate_thermostat).set_ki( x );
+      lambda: id(console_thermostat).set_ki( x );
 
   # KD
   - platform: template
@@ -107,8 +104,9 @@ number:
     min_value: -50
     max_value: 50
     step: 0.001
+    optimistic: true
     set_action:
-      lambda: id(automate_thermostat).set_kd( x );
+      lambda: id(console_thermostat).set_kd( x );
 
   # Set threshold low
   - platform: template
@@ -119,8 +117,9 @@ number:
     min_value: -20
     max_value: 0
     step: 0.1
+    optimistic: true
     set_action:
-      lambda: id(automate_thermostat).set_threshold_low( x );
+      lambda: id(console_thermostat).set_threshold_low( x );
 
   # Set threshold high
   - platform: template
@@ -131,8 +130,9 @@ number:
     min_value: 0
     max_value: 20
     step: 0.1
+    optimistic: true
     set_action:
-      lambda: id(automate_thermostat).set_threshold_high( x );
+      lambda: id(console_thermostat).set_threshold_high( x );
 
   # Set ki multiplier
   - platform: template
@@ -143,8 +143,9 @@ number:
     min_value: 0
     max_value: .2
     step: 0.01
+    optimistic: true
     set_action:
-      lambda: id(automate_thermostat).set_ki_multiplier( x );
+      lambda: id(console_thermostat).set_ki_multiplier( x );
 
 text_sensor:
 
@@ -158,6 +159,12 @@ text_sensor:
     name: "${friendly_name} Uptime"
     id: uptime_human
     icon: mdi:clock-start
+
+  # Send version of esphome flashed
+  - platform: version
+    name: "${friendly_name} ESPHome Version"
+    icon: mdi:information
+    hide_timestamp: true
 
 sensor:
 
@@ -193,18 +200,18 @@ sensor:
               ).c_str();
 
   # Read the Tacho PIN and show measured RPM as a sensor (only with 4-pin PWM fans!)
-
+  # See instructions here: https://esphome.io/components/sensor/pulse_counter.html
   - platform: pulse_counter
     pin:
-      # number: GPIO25 # Connect to any input PIN on the ESP
-      number: GPIO14 # Connect to any input PIN on the ESP
+      number: GPIO25 # Connect to any input PIN on the ESP
+      #number: GPIO14 # Connect to any input PIN on the ESP
       # mode: INPUT_PULLUP
       mode:
         input: true
         pullup: true
     unit_of_measurement: 'RPM'
-    id: automate_get_fan_speed
-    name: "${friendly_name} current speed"
+    id: fan_speed
+    name: "${friendly_name} Fan Speed 1"
     # default update_interval 60s, missing in the logs otherwise
     update_interval: 5s
     accuracy_decimals: 0
@@ -212,6 +219,16 @@ sensor:
       # check the specs, compare with this value
       - multiply: 0.5  # Depending on how many pulses the fan sends per round - should be 0.5 or 1 - try...
 
+  - platform: pulse_counter
+    pin:
+      number: GPIO26   # Connect to any input PIN on the ESP
+      mode: INPUT_PULLUP
+    unit_of_measurement: 'RPM'
+    id: fan_speed_2
+    name: $friendly_name Fan Speed 2
+    accuracy_decimals: 0
+    filters:
+      - multiply: 0.5  # Depending on how many pulses the fan sends per round - should be 0.5 or 1 - try...
 
   ########################################################
   # START THE FAN CONTROLLER SETUP
@@ -250,36 +267,68 @@ sensor:
     id: in_deadband_term
     accuracy_decimals: 0
 
-  - platform: custom
-    # the number in SHT20() is the update_interval
-    lambda: |-
-      auto sht20 = new SHT20(5000);
-      App.register_component(sht20);
-      return {sht20->temperature_sensor, sht20->humidity_sensor, sht20->vpd_sensor, sht20->dew_point_sensor};
-    sensors:
-      - name: "Temperature"
-        id: automate_fan_temperature
-        unit_of_measurement: "°C"
-        accuracy_decimals: 3
-      - name: "Humidity"
-        id: automate_fan_humidity
-        unit_of_measurement: "%"
-        accuracy_decimals: 3
-      - name: "VPD (vapor pressure deficit)"
-        id: automate_fan_vpd
-        unit_of_measurement: ""
-        accuracy_decimals: 3
-      - name: "DEW Point"
-        id: automate_fan_dewpoint
-        unit_of_measurement: "°C"
-        accuracy_decimals: 3
+  - platform: htu21d # compatible with sht21 and (even if not explicit) sht20)
+    model: sht21 # OK for SHT20
+    temperature:
+      id: automate_fan_temperature
+      name: "Temperature"
+      unit_of_measurement: "°C"
+      accuracy_decimals: 2
+      # If you don't smooth the temperature readings
+      # the PID controller over reacts to small changes.
+      filters:
+         - exponential_moving_average:
+             alpha: 0.1
+             send_every: 1
+    humidity:
+      id: automate_fan_humidity
+      name: "Humidity"
+      unit_of_measurement: "%"
+      accuracy_decimals: 2
+      # If you don't smooth the temperature readings
+      # the PID controller over reacts to small changes.
+      filters:
+         - exponential_moving_average:
+             alpha: 0.1
+             send_every: 1
+    # the DHT11 can only be read every 1s. Use 1.3s to be safe.
+    update_interval: 5s      # equivalente ai 5000 ms che usavi
 
-  # Take the "COOL" value of the pid and send
-  # it to the frontend to graph the output voltage
-  - platform: pid
-    name: "Fan Speed set (PWM Voltage)"
-    climate_id: automate_thermostat
-    type: COOL
+  # derivated (but similar to previous setup)
+  # 2) Punto di rugiada (Dew Point)
+  - platform: template
+    name: "Dew Point"
+    id: automate_fan_dewpoint
+    unit_of_measurement: "°C"
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: |-
+      const float T = id(automate_fan_temperature).state;
+      const float RH = id(automate_fan_humidity).state;
+      float alpha = log(RH / 100.0) + (17.27f * T) / (237.7f + T);
+      return (237.7f * alpha) / (17.27f - alpha);
+
+  # 3) Vapor Pressure Deficit (VPD)
+  - platform: template
+    name: "VPD"
+    id: automate_fan_vpd
+    unit_of_measurement: "kPa"
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: |-
+      const float T = id(automate_fan_temperature).state;
+      const float RH = id(automate_fan_humidity).state;
+      float es = 0.61078f * exp(17.27f * T / (T + 237.3f));
+      float ea = (RH / 100.0f) * es;
+      return (es - ea);
+
+  # Every time the fan speed is updated, this sensor will
+  # also be updated for displaying on the frontend.
+  # See proxy_output.
+  - platform: template
+    name: "Fan Speed (PWM Voltage)"
+    unit_of_measurement: "%"
+    id: fan_speed_pwm_voltage
 
 output:
   # Wire this pin (13) into the PWM pin of your 12v fan
@@ -298,47 +347,68 @@ output:
     # max_power: 80%
     min_power: 0%
     max_power: 100%
+    # At 0, actually turn it off, otherwise the power keeps going.
+    zero_means_zero: true
 
-# Good for debugging, you can manually set the fan
-# speed. Just make sure the Climate device is set to off or it will keep getting overridden.
-# fan:
-#   - platform: speed
-#     output: automate_set_fan_speed
-#     name: "${friendly_name} Speed"
+  # This proxy output takes its input
+  # if the manual fan control is on, use the level from that
+  # otherwise use the PID control value.
+  # Then publish the result to the fan (ledc) and
+  # also publish to the template output sensor
+  - platform: template
+    id: proxy_output
+    type: float
+    write_action:
+      lambda: |-
+        float write_val =
+          (id(manual_fan_control).state) ?
+            id(manual_fan_control).speed / 100.0 : state*1.0;
+        id(automate_set_fan_speed).set_level(write_val);
+        id(fan_speed_pwm_voltage).publish_state(write_val*100.0);
+
+# If you turn this on, you can manually set the fan speed.
+# The PID will be ignored. This is done via the proxy_output.
+fan:
+  - platform: speed
+    id: manual_fan_control
+    output: proxy_output
+    name: "Manual Fan Speed"
 
 # Expose a PID-controlled Thermostat
 # Manual: https://esphome.io/components/climate/pid.html
 climate:
   - platform: pid
     name: "${friendly_name} Thermostat"
-    id: automate_thermostat
+    id: console_thermostat
     sensor: automate_fan_temperature
 
     # It is summer right now, so 30c is a decent target.
     default_target_temperature: 30°C
-    cool_output: automate_set_fan_speed
+    #cool_output: automate_set_fan_speed
+    cool_output: proxy_output
+    #cool_output: automate_set_fan_speed
 
     # ON state change, publish the values to the x_term numbers defined
     # above, so that they can be viewed in HA
     on_state:
       - sensor.template.publish:
           id: p_term
-          state: !lambda 'return -id(automate_thermostat).get_proportional_term() * 100.0;'
+          state: !lambda 'return -id(console_thermostat).get_proportional_term() * 100.0;'
       - sensor.template.publish:
           id: i_term
-          state: !lambda 'return -id(automate_thermostat).get_integral_term()* 100.0;'
+          state: !lambda 'return -id(console_thermostat).get_integral_term()* 100.0;'
       - sensor.template.publish:
           id: d_term
-          state: !lambda 'return -id(automate_thermostat).get_derivative_term()* 100.0;'
+          state: !lambda 'return -id(console_thermostat).get_derivative_term()* 100.0;'
       - sensor.template.publish:
           id: o_term
-          state: !lambda 'return -id(automate_thermostat).get_output_value()* 100.0;'
+          state: !lambda 'return -id(console_thermostat).get_output_value()* 100.0;'
       - sensor.template.publish:
           id: in_deadband_term
-          state: !lambda 'return id(automate_thermostat).in_deadband();'
+          state: !lambda 'return id(console_thermostat).in_deadband();'
       - sensor.template.publish:
           id: e_term
-          state: !lambda 'return -id(automate_thermostat).get_error_value();'
+          state: !lambda 'return -id(console_thermostat).get_error_value();'
 
     # The extents of the HA Thermostat
     visual:
@@ -389,7 +459,21 @@ time:
 # values it produces.
 # See more at: https://esphome.io/components/climate/pid.html#climate-pid-autotune-action
 button:
-  - platform: template
-    name: "PID Climate Autotune"
-    on_press:
-      - climate.pid.autotune: automate_thermostat
+- platform: template
+  name: "PID Climate Autotune"
+  on_press:
+    - climate.pid.autotune: console_thermostat
+
+interval:
+  - interval: 60s
+    then:
+      - lambda: |-
+          // Log current IP address
+          if (WiFi.isConnected()) {
+            auto ip = WiFi.localIP().toString();
+            ESP_LOGD("ip_logger", "Current IP: %s", ip.c_str());
+          } else {
+            ESP_LOGW("ip_logger", "WiFi not connected");
+          }
+
+

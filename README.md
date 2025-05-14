@@ -1,16 +1,16 @@
 # ESPHome Fan Controller
 
-This project describes how to build a quiet thermostat controlled fan for cooling your media console, gaming cupboard or anything else.
+This project describes how to build a whisper quiet thermostat-controlled fan for cooling your media console, gaming cupboard or that dying star in your networking cabinet.
 
 The software is ESPHome and Home Assistant. The hardware is an ESP32 with a regular 12v 120mm Computer Fan (PWM) and a Temperature Sensor (DHT11).
 
 ## Cost
-The electronic parts are $29 USD including the ESP32. 
+The electronic parts are $29 USD including the ESP32. You will also need a multimeter.
 
 ## Motivation
 My sons's Playstation 5 sits in our TV Console which runs hotter than Sol. Also in that Media Console is a Macmini, a Raspberry Pi and a few other devices. My wife likes to keep the door neat and closed, so it needs some cooling!
 
-I previously had a thermostat which simply toggled the fan when the temperature crossed a threshold. That didn't work for me because the fans were loud and toggling on/off. Very wife-unfriendly and annoying when you're watching a movie to hear the fan buzzing every other minute. The process led me to this smart thermostat which intelligently controls the speed of the 12v-fan to maintain a perfect temperature in your cabinet. It will find and hold the fan at the necessary power level (like 22% power) to keep a cupboard cool and adjust as necessary.
+I used to have a thermostat that mindlessly flipped the fan on and off whenever the temperature crossed a threshold. Not great, the fan cycling was a mood killer on movie nights and dismally failed wife approval. Enter this smart thermostat: instead of brute-force toggling, it smoothly adjusts the 12V fan speed to maintain the perfect temperature. It’ll settle on just the right power level (say, 22% power) to keep things cool without the unnecessary drama.
 
 !["closed cabinet"](images/fortnite.jpg)
 
@@ -22,10 +22,11 @@ The main features are:
 - uses ESP32's Wifi to connect to Home Assistant for control and reporting
 - the ESP32 is standalone and so the cooling function will continue to operate without Wifi. Doesn't need HomeAssistant or Wifi to operate. Wifi is only needed for setup, manual control and reporting.
 - **no screen** is needed on the device itself, all management is done via Home Assistant
-- my system uses two fans for extra cooling. Depending on how much air you need to draw through your enclosed space you could use 1 or 2 fans
-- it is easily extendable to control up to 10 separate enclosed spaces with separate temperature sensors as well. You're only limited by the Amps of your 12v Power Brick and the pins on your ESP32.
+- my system uses two fans for extra cooling. Depending on how much air you need to draw through your enclosed space you could use 1, 2, 4, 10 .. n fans.
+- one esp32 can control up to 10 independent enclosures each with separate temperature sensors and fans. You're only limited by the Amps of your 12v Power Bricks and the 10 pwm pins on your ESP32.
+- **manual speed control** over ride if you don't want to use PID Control
 - **no coding is needed**. Just some configuration in YAML files. In fact this repo only contains 1 file ``config-fan.yaml``.
-- **No resistors, capacitors or difficult soldering needed**. The fan and the temperature sensor plug straight onto the pins of the ESP32. Although I did mount mine on a perfboard for cleanliness and put it in a case.
+- **No resistors, capacitors or difficult soldering needed**. The fan and the temperature sensor plug straight onto the pins of the ESP32. Although I did solder mount mine on a perfboard for cleanliness and put it in a case.
 
 !["graphs"](images/demo.jpg)
 
@@ -35,6 +36,9 @@ This is a screenshot from Home Assistant. I'll show you how to setup this dashbo
 !["inside cabinet"](images/inside.jpg)
 !["controller"](images/real1.jpg)
 !["fans"](images/real2.jpg)
+
+## Examples from other users
+https://github.com/patrickcollins12/esphome-fan-controller/issues/34
 
 
 ## Parts (~$29 USD)
@@ -51,7 +55,13 @@ This is a screenshot from Home Assistant. I'll show you how to setup this dashbo
 
 - **ESP32**. You can use any ESP32. I'm using a NodeMCU compatible board. Mine cost $4 from Aliexpress<br><img src="images/nodemcu-esp32.png" width="100"> 
 
+- **Jumper wires**. Some jumper wires to connect the ESP32 to the various parts here. $1. <br><img src="images/jumperwires.png" width="100">
+
+You will also need a multimeter. Optionally, if you want to move this beyond a prototype you will need some soldering equipment and a 3d printer for a case or to buy a housing.
+
 ## Choosing a Good Fan
+You need a 4-pin fan which has PWM. 3-pin fans aren't acceptable, they are just on/off with tachometer sensor.
+
 As you'll see below, our fans are being powered by the PWM pin. Our expectation is that the fans stop spinning at 0% power. Some people have reported that some fans don't stop running at 0% power (or worse that they stop completely at 100% power which is weird). 
 
 It appears that Corsair and Noctua fans behave as expected so you might want to stick with them.
@@ -69,11 +79,15 @@ Some important notes:
 - you could easily skip the Buck converter and use two separate power sources 3.3v and 12v. 
 - the fritzing diagram shows a 4-pin DHT-11, when in fact I have the simpler 3-pin version as shown in the parts list. The 4-pin version might need a pullup resistor, haven't tried it.
 
+## Common Wiring Error - not joining grounds 
+
+NOTE: if you don't join your 3.3v and 12v ground wires together your fan will keep spinning. At least 5 different builds have reported this issue. 
+
 ## Installing the software onto the ESP32
 
 ### Get this repo
 Clone this github repository.
-From the command line cd into the directory
+From the command line and then cd into the directory
 
 ```
 git clone https://github.com/patrickcollins12/esphome-fan-controller.git
@@ -193,42 +207,77 @@ You also need to setup the dashboard. I'll explain those two steps below.
 
 Here is my full dashboard in Home Assistant.
 
-Let's go through them section by section.
+For this full dashboard configuration, checkout ```lovelace-dashboard.yaml```
+
+Let's go through this page section-by-section.
 
 ### The Primary Controls
 
 <img src="images/primary-controls.jpg" width=400>
-
-By clicking the thermostat you can turn on/off the thermostat and fan and adjust the target temperature which will be persisted to flash on the ESP32.
-
+ 
 ```yaml
 type: entities
-title: Console Fan
 entities:
+  - entity: fan.manual_fan_speed
   - entity: sensor.fan_speed_pwm_voltage
-  - entity: climate.console_fan_thermostat
-  - entity: sensor.contact_sensor_1_temperature
-    name: Room Temperature
-  - entity: sensor.openweathermap_temperature
-    name: Outside temperature
-  - entity: number.console_fan_kp
-  - entity: number.console_fan_ki
-  - entity: number.console_fan_kd
-  ```
+```
+
+- You can turn on  `manual fan speed` and use this fan control to adjust the speed manually. 
 
 - The ``Fan Speed (PWM Voltage)`` is the % of voltage being sent out via PWM to the fan controller. At 100% it will be sending 12v, at 50% it will be sending 6v.
 
-- The ``Console Fan Thermostat`` is a controllable thermostat, by clicking it you can alter the target temperature and turn the fan on/off.
+If `manual fan speed` is off, this next card stack will conditionally display.
 
-- The Room and Outside temperatures are from other sensors in my house for reference.
+```yaml
+type: conditional
+conditions:
+  - condition: state
+    entity: fan.manual_fan_speed
+    state_not: 'on'
+card:
+  type: vertical-stack
+  cards:
+    - type: entities
+      title: Thermostat Fan (PID)
+      entities:
+        - entity: climate.console_fan_thermostat
+        - entity: sensor.openweathermap_temperature
+          name: open weather
+        - entity: sensor.contact_sensor_1_device_temperature
+          name: room temperature
+    - type: vertical-stack
+      cards:
+        - type: glance
+          entities:
+            - entity: sensor.console_fan_is_in_deadband
+              name: in_deadband?
+            - entity: sensor.console_fan_error_value
+              name: error
+              icon: mdi:equal
+        - type: glance
+          show_icon: false
+          entities:
+            - entity: sensor.console_fan_output_value
+              name: output
+            - entity: sensor.console_fan_p_term
+              name: p_term
+            - entity: sensor.console_fan_i_term
+              name: i_term
+            - entity: sensor.console_fan_d_term
+              name: d_term
+```
+
+- The `Console Fan Thermostat` is a controllable thermostat, by clicking it you can alter the target temperature and turn the fan on/off. These changes will be persisted to flash on the ESP32.
+
+- The `Open Weather` and `Room` temperatures are from other sensors in my house for reference.
 
 - The ``kp, ki and kd`` inputs are exposed from the device. Your ESP32 will be automatically receiving changes to these values to control the behavior of the PID controller. While you could tune these from the config.yaml it requires a compile, upload and reboot cycle each time. This is inconvenient and best to tweak in real-time. We want to expose these 3 parameters to a Home Assistant dashboard.
 
 ### The Graphs
 
-<img src="images/graphs.jpg" width=400>
-
 Add the fan speed and the thermostat to two separate graphs. I've also added my room temperature from a separate device for comparison.
+
+<img src="images/graphs.jpg" width=400>
 
 ```yaml
 type: vertical-stack
@@ -272,7 +321,41 @@ entities:
 
 - ``console_fan_esp32_restart`` restarts the ESP32 remotely.
 
-## Configuring the PID Parameters
+### PID Parameters - setting the PID parameters from the frontend
+
+This dashboard allows you to configure the PID parameters. See the next section for how to set these parameters.
+This dashboard will conditionally disappear if `manual fan speed` control is `on`.
+
+<img src="images/pid-controls.jpg" width=400>
+
+```yaml
+type: conditional
+conditions:
+  - condition: state
+    entity: fan.manual_fan_speed
+    state_not: 'on'
+card:
+  type: vertical-stack
+  cards:
+    - type: entities
+      entities:
+        - entity: number.kp
+        - entity: number.ki
+        - entity: number.kd
+        - entity: button.pid_climate_autotune
+      title: PID Controls Setup
+    - type: entities
+      entities:
+        - entity: number.deadband_threshold_low
+          name: Threshold Low
+        - entity: number.deadband_threshold_high
+          name: Threshold High
+        - entity: number.deadband_ki_multiplier
+          name: ki multiplier
+      title: Deadband Parameters
+```
+
+## Tuning your fan - by configuring the PID Parameters
 
 The thermostat is controlled using a standard Process Control system called a PID. 
 
