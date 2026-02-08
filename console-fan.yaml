@@ -203,8 +203,7 @@ sensor:
   # See instructions here: https://esphome.io/components/sensor/pulse_counter.html
   - platform: pulse_counter
     pin:
-      number: GPIO25 # Connect to any input PIN on the ESP
-      #number: GPIO14 # Connect to any input PIN on the ESP
+      number: GPIO14 # Connect to any input PIN on the ESP - 4th pin fan1
       # mode: INPUT_PULLUP
       mode:
         input: true
@@ -221,7 +220,7 @@ sensor:
 
   - platform: pulse_counter
     pin:
-      number: GPIO26   # Connect to any input PIN on the ESP
+      number: GPIO26   # Connect to any input PIN on the ESP - 4th pin fan2
       mode: INPUT_PULLUP
     unit_of_measurement: 'RPM'
     id: fan_speed_2
@@ -335,7 +334,7 @@ output:
   # ledc is the name of the pwm output system on an esp32
   - platform: ledc
     id: automate_set_fan_speed
-    pin: GPIO13
+    pin: GPIO13 # 3rd pin fan1 & fan2
     # name: "Output Fan Speed" # invalid for output
 
     # 25KHz is standard PC fan frequency, minimises buzzing
@@ -345,6 +344,7 @@ output:
     # also they're  powerful and loud, cap their max speed to 80%
     # min_power: 13%
     # max_power: 80%
+    # open door: 72% - closed door 85%
     min_power: 0%
     max_power: 100%
     # At 0, actually turn it off, otherwise the power keeps going.
