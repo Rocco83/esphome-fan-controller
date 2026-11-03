@@ -11,32 +11,36 @@ substitutions:
   fan_min_duty: "0.20"
 
   # DS18B20 probes, named after the board connector they plug into.
-  # Cross split: each pair (high/low/in-out) has one probe on each bus, so a
-  # failed bus (damaged cable, shorted probe) leaves one probe of each pair.
-  #   bus A (GPIO5,  TEMP1-4): TEMP1 Front High, TEMP2 Rear Low, TEMP3 Inlet
-  #   bus B (GPIO17, TEMP5-8): TEMP5 Rear High,  TEMP6 Front Low, TEMP7 Outlet
-  #   TEMP4 and TEMP8: spare connectors
-  # A DS18B20 is identified by its 64-bit address, not by the connector:
-  # flash once, read the addresses from the log (one_wire lists every device
-  # found at boot), then fill them in here and plug each probe into the
-  # connector of its name. Until then the probes read nothing and the fans
-  # run at 100% (emergency): an unassigned probe (address 0) never reports.
-  addr_temp1_front_high: "0x0000000000000000"
-  addr_temp2_rear_low: "0x0000000000000000"
-  addr_temp3_inlet: "0x0000000000000000"
-  addr_temp5_rear_high: "0x0000000000000000"
-  addr_temp6_front_low: "0x0000000000000000"
-  addr_temp7_outlet: "0x0000000000000000"
+  # Odd connectors are bus A (GPIO5), even ones bus B (GPIO17):
+  #   TEMP1 Rear High  (A) hot zone      TEMP2 Rear Mid   (B) hot zone
+  #   TEMP3 Rear Low   (A) bottom zone   TEMP4 Front High (B) hot zone
+  #   TEMP5 Front Low  (A) bottom zone   TEMP6 Outlet     (B) usefulness cap
+  #   TEMP7 Inlet      (A) usefulness     TEMP8 Other Room (B) monitoring only
+  # The hot zone has probes on both buses, so a failed bus (damaged cable,
+  # shorted probe) still leaves a hot-zone reading.
+  # A DS18B20 is identified by its 64-bit address, not by the connector: press
+  # "Scan 1-Wire probes", copy each UNASSIGNED address here and plug the probe
+  # into the connector of its name. A probe with address 0 reads nothing.
+  addr_temp1_rear_high: "0x02000000d5569f28"     # 2 m
+  addr_temp2_rear_mid: "0x92000000d77ed028"      # 2 m
+  addr_temp3_rear_low: "0x10000000d5669628"      # 2 m
+  addr_temp4_front_high: "0xf9000000da46e828"    # 2 m
+  addr_temp5_front_low: "0x7a000000d7a63828"     # 2 m
+  addr_temp6_outlet: "0x120b257459e14d28"        # 5 m
+  addr_temp7_inlet: "0xb90b2574b8f42d28"         # 5 m
+  addr_temp8_other_room: "0x750b257509916728"    # 5 m
 
   # Per-probe calibration, °C added to the reading. DS18B20 are ±0.5 °C, so
   # two probes can disagree by up to 1 °C, which matters for the deltas.
   # Measure with all probes bundled together, then set offsets so they agree.
-  offset_temp1_front_high: "0.0"
-  offset_temp2_rear_low: "0.0"
-  offset_temp3_inlet: "0.0"
-  offset_temp5_rear_high: "0.0"
-  offset_temp6_front_low: "0.0"
-  offset_temp7_outlet: "0.0"
+  offset_temp1_rear_high: "0.0"
+  offset_temp2_rear_mid: "0.0"
+  offset_temp3_rear_low: "0.0"
+  offset_temp4_front_high: "0.0"
+  offset_temp5_front_low: "0.0"
+  offset_temp6_outlet: "0.0"
+  offset_temp7_inlet: "0.0"
+  offset_temp8_other_room: "0.0"
 
 esphome:
   name: rack-fan
@@ -115,13 +119,13 @@ web_server:
 # probes powered (3 wires, not parasitic). GPIO5 and GPIO17 carry the
 # WT32-ETH01's LED3/LED4 (1k to 3V3): they blink with bus traffic.
 one_wire:
-  # bus A (WT32 pin 7), TEMP1-4 (J21-J24): Front High, Rear Low, Inlet, spare
+  # bus A (WT32 pin 7): TEMP1, TEMP3, TEMP5, TEMP7 (odd connectors)
   - platform: gpio
     id: probes
     pin:
       number: GPIO5
       ignore_strapping_warning: true    # high at boot = default
-  # bus B (WT32 pin 8), TEMP5-8 (J25-J28): Rear High, Front Low, Outlet, spare
+  # bus B (WT32 pin 8): TEMP2, TEMP4, TEMP6, TEMP8 (even connectors)
   - platform: gpio
     id: probes_b
     pin: GPIO17
@@ -189,15 +193,17 @@ script:
       - lambda: |-
           struct Probe { uint64_t addr; const char *name; bool bus_b; };
           const Probe assigned[] = {
-            {(uint64_t) ${addr_temp1_front_high}, "TEMP1 Front High", false},
-            {(uint64_t) ${addr_temp2_rear_low},   "TEMP2 Rear Low",   false},
-            {(uint64_t) ${addr_temp3_inlet},      "TEMP3 Inlet",      false},
-            {(uint64_t) ${addr_temp5_rear_high},  "TEMP5 Rear High",  true},
-            {(uint64_t) ${addr_temp6_front_low},  "TEMP6 Front Low",  true},
-            {(uint64_t) ${addr_temp7_outlet},     "TEMP7 Outlet",     true},
+            {(uint64_t) ${addr_temp1_rear_high},   "TEMP1 Rear High",   false},
+            {(uint64_t) ${addr_temp2_rear_mid},    "TEMP2 Rear Mid",    true},
+            {(uint64_t) ${addr_temp3_rear_low},    "TEMP3 Rear Low",    false},
+            {(uint64_t) ${addr_temp4_front_high},  "TEMP4 Front High",  true},
+            {(uint64_t) ${addr_temp5_front_low},   "TEMP5 Front Low",   false},
+            {(uint64_t) ${addr_temp6_outlet},      "TEMP6 Outlet",      true},
+            {(uint64_t) ${addr_temp7_inlet},       "TEMP7 Inlet",       false},
+            {(uint64_t) ${addr_temp8_other_room},  "TEMP8 Other Room",  true},
           };
           auto scan = [&](one_wire::OneWireBus *bus, bool is_b, text_sensor::TextSensor *out) {
-            const char *bn = is_b ? "B (GPIO17, TEMP5-8)" : "A (GPIO5, TEMP1-4)";
+            const char *bn = is_b ? "B (GPIO17, even TEMPs)" : "A (GPIO5, odd TEMPs)";
             bus->search();
             const auto &found = bus->get_devices();
             std::string rep;
@@ -210,7 +216,7 @@ script:
                 if (p.addr == a)
                   who = (p.bus_b == is_b) ? std::string(p.name)
                                           : std::string(p.name) + " (WRONG BUS: move it to the " +
-                                            (p.bus_b ? "TEMP5-8" : "TEMP1-4") + " connectors)";
+                                            (p.bus_b ? "even" : "odd") + " TEMP connectors)";
               ESP_LOGI("probe_scan", "  %s -> %s", buf, who.c_str());
               rep += std::string(buf) + "=" + who.substr(0, who.find(' ')) +
                      (who.find("WRONG") != std::string::npos ? "!wrong bus" : "") + "; ";
@@ -609,9 +615,14 @@ binary_sensor:
     lambda: |-
       struct P { uint64_t addr; sensor::Sensor *s; };
       const P ps[] = {
-        {(uint64_t) ${addr_temp1_front_high}, id(temp_front_high)}, {(uint64_t) ${addr_temp2_rear_low}, id(temp_rear_low)},
-        {(uint64_t) ${addr_temp3_inlet}, id(temp_inlet)}, {(uint64_t) ${addr_temp5_rear_high}, id(temp_rear_high)},
-        {(uint64_t) ${addr_temp6_front_low}, id(temp_front_low)}, {(uint64_t) ${addr_temp7_outlet}, id(temp_outlet)},
+        {(uint64_t) ${addr_temp1_rear_high}, id(temp_rear_high)},
+        {(uint64_t) ${addr_temp2_rear_mid}, id(temp_rear_mid)},
+        {(uint64_t) ${addr_temp3_rear_low}, id(temp_rear_low)},
+        {(uint64_t) ${addr_temp4_front_high}, id(temp_front_high)},
+        {(uint64_t) ${addr_temp5_front_low}, id(temp_front_low)},
+        {(uint64_t) ${addr_temp6_outlet}, id(temp_outlet)},
+        {(uint64_t) ${addr_temp7_inlet}, id(temp_inlet)},
+        {(uint64_t) ${addr_temp8_other_room}, id(temp_other_room)},
       };
       for (const auto &p : ps)
         if (p.addr != 0 && std::isnan(p.s->state)) return true;
@@ -652,106 +663,136 @@ sensor:
               ).c_str();
 
   ########################################################
-  # TEMPERATURE PROBES: DS18B20, TEMPn = board connector (TEMP1-4 bus A, TEMP5-8 bus B)
+  # TEMPERATURE PROBES: DS18B20, TEMPn = board connector (odd bus A, even bus B)
   # If you don't smooth the temperature readings
   # the PID controller over reacts to small changes.
 
   - platform: dallas_temp
     one_wire_id: probes
-    address: ${addr_temp1_front_high}
-    id: temp_front_high
-    name: "${friendly_name} TEMP1 Front High"
+    address: ${addr_temp1_rear_high}
+    id: temp_rear_high
+    name: "${friendly_name} TEMP1 Rear High"
     update_interval: 5s
     accuracy_decimals: 2
     filters:
       # address still 0 = probe not assigned yet: report nothing. Without this, a
       # 0 address auto-selects the only probe on the bus and every unassigned
       # TEMP would show that probe's value, hiding the 100% emergency.
-      - lambda: 'return ((uint64_t) ${addr_temp1_front_high}) == 0 ? NAN : x;'
-      - offset: ${offset_temp1_front_high}
+      - lambda: 'return ((uint64_t) ${addr_temp1_rear_high}) == 0 ? NAN : x;'
+      - offset: ${offset_temp1_rear_high}
       - exponential_moving_average: &ema
           alpha: 0.1
           send_every: 1
 
   - platform: dallas_temp
     one_wire_id: probes_b
-    address: ${addr_temp5_rear_high}
-    id: temp_rear_high
-    name: "${friendly_name} TEMP5 Rear High"
+    address: ${addr_temp2_rear_mid}
+    id: temp_rear_mid
+    name: "${friendly_name} TEMP2 Rear Mid"
     update_interval: 5s
     accuracy_decimals: 2
     filters:
       # address still 0 = probe not assigned yet: report nothing. Without this, a
       # 0 address auto-selects the only probe on the bus and every unassigned
       # TEMP would show that probe's value, hiding the 100% emergency.
-      - lambda: 'return ((uint64_t) ${addr_temp5_rear_high}) == 0 ? NAN : x;'
-      - offset: ${offset_temp5_rear_high}
+      - lambda: 'return ((uint64_t) ${addr_temp2_rear_mid}) == 0 ? NAN : x;'
+      - offset: ${offset_temp2_rear_mid}
       - exponential_moving_average: *ema
 
   - platform: dallas_temp
     one_wire_id: probes
-    address: ${addr_temp2_rear_low}
+    address: ${addr_temp3_rear_low}
     id: temp_rear_low
-    name: "${friendly_name} TEMP2 Rear Low"
+    name: "${friendly_name} TEMP3 Rear Low"
     update_interval: 5s
     accuracy_decimals: 2
     filters:
       # address still 0 = probe not assigned yet: report nothing. Without this, a
       # 0 address auto-selects the only probe on the bus and every unassigned
       # TEMP would show that probe's value, hiding the 100% emergency.
-      - lambda: 'return ((uint64_t) ${addr_temp2_rear_low}) == 0 ? NAN : x;'
-      - offset: ${offset_temp2_rear_low}
+      - lambda: 'return ((uint64_t) ${addr_temp3_rear_low}) == 0 ? NAN : x;'
+      - offset: ${offset_temp3_rear_low}
       - exponential_moving_average: *ema
 
   - platform: dallas_temp
     one_wire_id: probes_b
-    address: ${addr_temp6_front_low}
-    id: temp_front_low
-    name: "${friendly_name} TEMP6 Front Low"
+    address: ${addr_temp4_front_high}
+    id: temp_front_high
+    name: "${friendly_name} TEMP4 Front High"
     update_interval: 5s
     accuracy_decimals: 2
     filters:
       # address still 0 = probe not assigned yet: report nothing. Without this, a
       # 0 address auto-selects the only probe on the bus and every unassigned
       # TEMP would show that probe's value, hiding the 100% emergency.
-      - lambda: 'return ((uint64_t) ${addr_temp6_front_low}) == 0 ? NAN : x;'
-      - offset: ${offset_temp6_front_low}
+      - lambda: 'return ((uint64_t) ${addr_temp4_front_high}) == 0 ? NAN : x;'
+      - offset: ${offset_temp4_front_high}
       - exponential_moving_average: *ema
 
   - platform: dallas_temp
     one_wire_id: probes
-    address: ${addr_temp3_inlet}
-    id: temp_inlet
-    name: "${friendly_name} TEMP3 Inlet"
+    address: ${addr_temp5_front_low}
+    id: temp_front_low
+    name: "${friendly_name} TEMP5 Front Low"
     update_interval: 5s
     accuracy_decimals: 2
     filters:
       # address still 0 = probe not assigned yet: report nothing. Without this, a
       # 0 address auto-selects the only probe on the bus and every unassigned
       # TEMP would show that probe's value, hiding the 100% emergency.
-      - lambda: 'return ((uint64_t) ${addr_temp3_inlet}) == 0 ? NAN : x;'
-      - offset: ${offset_temp3_inlet}
+      - lambda: 'return ((uint64_t) ${addr_temp5_front_low}) == 0 ? NAN : x;'
+      - offset: ${offset_temp5_front_low}
       - exponential_moving_average: *ema
 
   - platform: dallas_temp
     one_wire_id: probes_b
-    address: ${addr_temp7_outlet}
+    address: ${addr_temp6_outlet}
     id: temp_outlet
-    name: "${friendly_name} TEMP7 Outlet"
+    name: "${friendly_name} TEMP6 Outlet"
     update_interval: 5s
     accuracy_decimals: 2
     filters:
       # address still 0 = probe not assigned yet: report nothing. Without this, a
       # 0 address auto-selects the only probe on the bus and every unassigned
       # TEMP would show that probe's value, hiding the 100% emergency.
-      - lambda: 'return ((uint64_t) ${addr_temp7_outlet}) == 0 ? NAN : x;'
-      - offset: ${offset_temp7_outlet}
+      - lambda: 'return ((uint64_t) ${addr_temp6_outlet}) == 0 ? NAN : x;'
+      - offset: ${offset_temp6_outlet}
+      - exponential_moving_average: *ema
+
+  - platform: dallas_temp
+    one_wire_id: probes
+    address: ${addr_temp7_inlet}
+    id: temp_inlet
+    name: "${friendly_name} TEMP7 Inlet"
+    update_interval: 5s
+    accuracy_decimals: 2
+    filters:
+      # address still 0 = probe not assigned yet: report nothing. Without this, a
+      # 0 address auto-selects the only probe on the bus and every unassigned
+      # TEMP would show that probe's value, hiding the 100% emergency.
+      - lambda: 'return ((uint64_t) ${addr_temp7_inlet}) == 0 ? NAN : x;'
+      - offset: ${offset_temp7_inlet}
+      - exponential_moving_average: *ema
+
+  - platform: dallas_temp
+    one_wire_id: probes_b
+    address: ${addr_temp8_other_room}
+    id: temp_other_room
+    name: "${friendly_name} TEMP8 Other Room"
+    update_interval: 5s
+    accuracy_decimals: 2
+    filters:
+      # address still 0 = probe not assigned yet: report nothing. Without this, a
+      # 0 address auto-selects the only probe on the bus and every unassigned
+      # TEMP would show that probe's value, hiding the 100% emergency.
+      - lambda: 'return ((uint64_t) ${addr_temp8_other_room}) == 0 ? NAN : x;'
+      - offset: ${offset_temp8_other_room}
       - exponential_moving_average: *ema
 
   ########################################################
   # DERIVED TEMPERATURES
 
-  # What the PID regulates: the hotter of the two high probes
+  # What the PID regulates: the hottest of Rear High, Rear Mid and Front High
   - platform: template
     id: temp_control
     name: "${friendly_name} Temperature Hot Zone"
@@ -760,10 +801,10 @@ sensor:
     accuracy_decimals: 2
     update_interval: 5s
     lambda: |-
-      const float f = id(temp_front_high).state, r = id(temp_rear_high).state;
-      if (std::isnan(f)) return r;
-      if (std::isnan(r)) return f;
-      return std::max(f, r);
+      float hot = NAN;
+      for (float t : {id(temp_rear_high).state, id(temp_rear_mid).state, id(temp_front_high).state})
+        if (!std::isnan(t) && (std::isnan(hot) || t > hot)) hot = t;
+      return hot;
 
   # Heat picked up by the air crossing the rack. Small = air already
   # exchanged faster than the rack heats it, more speed buys little.
@@ -796,6 +837,17 @@ sensor:
       const float fl = id(temp_front_low).state, rl = id(temp_rear_low).state;
       const float low = std::isnan(fl) ? rl : (std::isnan(rl) ? fl : std::max(fl, rl));
       return id(temp_control).state - low;
+
+  # Rack inlet vs the other room. Positive = the other room is colder than the
+  # air entering the rack: bringing its air in (external fans) would help.
+  # Monitoring only, it does not change the rack fans.
+  - platform: template
+    name: "${friendly_name} Delta Inlet-Other Room"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: return id(temp_inlet).state - id(temp_other_room).state;
 
   ########################################################
   # CONTROLLER DIAGNOSTICS

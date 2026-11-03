@@ -8,7 +8,6 @@
 	(jumper_pad_groups
 		("2" "9" "11" "14" "23")
 		("3" "10")
-		("1" "4")
 	)
 	(property "Reference" "REF**"
 		(at 0 -29 0)

@@ -3,12 +3,11 @@
 	(generator "pcbnew")
 	(generator_version "9.0")
 	(layer "F.Cu")
-	(descr "WT32-ETH01 mounted FACE DOWN (components towards the board) on two 1x13 2.54 mm female sockets, rows 22.86 mm apart. Mirror of WT32-ETH01_Socket: pin 1 (EN) is in the right-hand row seen from the top. Origin = module centre. Verify row spacing with calipers.")
+	(descr "WT32-ETH01 mounted FACE DOWN (components towards the board) on two 1x12 2.54 mm female sockets (pins 13 LINK and 14 GND left out: at the RJ45 end they fall outside the board edge, the module overhangs there), rows 22.86 mm apart. Mirror of WT32-ETH01_Socket: pin 1 (EN) is in the right-hand row seen from the top. Origin = module centre. Verify row spacing with calipers.")
 	(attr through_hole)
 	(jumper_pad_groups
-		("2" "9" "11" "14" "23")
+		("2" "9" "11" "23")
 		("3" "10")
-		("1" "4")
 	)
 	(property "Reference" "REF**"
 		(at 0 -29 0)
@@ -163,20 +162,6 @@
 		(drill 1)
 		(layers "*.Cu" "*.Mask")
 		(uuid "bb1a3840-9876-484b-8e49-256a7ff407a4")
-	)
-	(pad "13" thru_hole oval
-		(at 11.43 11.43)
-		(size 1.7 1.7)
-		(drill 1)
-		(layers "*.Cu" "*.Mask")
-		(uuid "d47612e9-3214-4d39-a64f-2a02de74188c")
-	)
-	(pad "14" thru_hole oval
-		(at -11.43 11.43)
-		(size 1.7 1.7)
-		(drill 1)
-		(layers "*.Cu" "*.Mask")
-		(uuid "1c608702-1819-4df2-a4e8-af6ef39a61d0")
 	)
 	(pad "15" thru_hole oval
 		(at -11.43 8.89)

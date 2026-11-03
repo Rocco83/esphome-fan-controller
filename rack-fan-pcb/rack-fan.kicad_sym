@@ -10,9 +10,8 @@
 		(in_bom yes)
 		(on_board yes)
 		(jumper_pin_groups
-			("2" "9" "11" "14" "23")
+			("2" "9" "11" "23")
 			("3" "10")
-			("1" "4")
 		)
 		(property "Reference" "U"
 			(at 0 19.05 0)
@@ -280,42 +279,6 @@
 					)
 				)
 				(number "12"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-			)
-			(pin output line
-				(at -17.78 -15.24 0)
-				(length 5.08)
-				(name "LINK"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-				(number "13"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-			)
-			(pin passive line
-				(at 17.78 -15.24 180)
-				(length 5.08)
-				(name "GND"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-				(number "14"
 					(effects
 						(font
 							(size 1.27 1.27)

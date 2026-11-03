@@ -1360,9 +1360,8 @@
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
 			(jumper_pin_groups
-				("2" "9" "11" "14" "23")
+				("2" "9" "11" "23")
 				("3" "10")
-				("1" "4")
 			)
 			(property "Reference" "U"
 				(at 0 19.05 0)
@@ -1640,42 +1639,6 @@
 						)
 					)
 					(number "12"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -17.78 -15.24 0)
-					(length 5.08)
-					(name "LINK"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "13"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 17.78 -15.24 180)
-					(length 5.08)
-					(name "GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "14"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -2753,21 +2716,25 @@
 		)
 		(uuid "d8fad6ad-5f92-42c6-90d3-ce9b150e7d1c")
 	)
-	(no_connect
-		(at 106.68 114.3)
-		(uuid "4bb0cebb-4f46-4940-84fd-dd5a97e0e870")
+	(wire
+		(pts
+			(xy 106.68 114.3) (xy 109.22 114.3)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c7a3c548-02e6-4511-a81a-11855d7eebca")
 	)
-	(no_connect
-		(at 71.12 109.22)
-		(uuid "e81c08a5-4e64-4c6d-b119-f04e5f6137b4")
-	)
-	(no_connect
-		(at 71.12 114.3)
-		(uuid "ec6ec7fa-35e0-41e3-89f8-53f68b1a3a0b")
-	)
-	(no_connect
-		(at 71.12 139.7)
-		(uuid "f0441157-d82b-48ba-949b-2bc53a569ee2")
+	(label "IO0"
+		(at 109.22 114.3 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "dfa3b330-abae-4437-97a0-d1c72a25025e")
 	)
 	(wire
 		(pts
@@ -3387,17 +3354,6 @@
 	)
 	(wire
 		(pts
-			(xy 106.68 139.7)
-			(xy 109.22 139.7)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9cca9b8a-a325-429e-bab0-0c4c8c4d7e7e")
-	)
-	(wire
-		(pts
 			(xy 317.5 240.03)
 			(xy 317.5 242.57)
 		)
@@ -3842,16 +3798,6 @@
 			(justify left)
 		)
 		(uuid "0f4072f5-7b99-490a-b41e-d12df65100df")
-	)
-	(label "GND"
-		(at 109.22 139.7 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "13f85ebe-06a1-47ea-87c5-b1c05e4e3cab")
 	)
 	(label "GND"
 		(at 269.24 48.26 270)
@@ -4764,7 +4710,7 @@
 				)
 			)
 		)
-		(property "Value" "TEMP2"
+		(property "Value" "TEMP3"
 			(at 238.76 119.38 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4928,7 +4874,7 @@
 				)
 			)
 		)
-		(property "Value" "TEMP6"
+		(property "Value" "TEMP4"
 			(at 350.52 119.38 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5565,7 +5511,7 @@
 				)
 			)
 		)
-		(property "Value" "TEMP3"
+		(property "Value" "TEMP5"
 			(at 238.76 139.7 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5758,7 +5704,7 @@
 				)
 			)
 		)
-		(property "Description" "WT32-ETH01 mounted FACE DOWN in 2 x 13 female sockets (rows mirrored)"
+		(property "Description" "WT32-ETH01 mounted FACE DOWN in 2 x 12 female sockets (rows mirrored; pins 13/14 not fitted)"
 			(at 88.9 151.13 0)
 			(hide yes)
 			(show_name no)
@@ -5804,12 +5750,6 @@
 		)
 		(pin "12"
 			(uuid "f431b12b-ad45-4263-a086-99f1f024f5fc")
-		)
-		(pin "13"
-			(uuid "feddc955-a395-45f0-9f34-dc306d55360b")
-		)
-		(pin "14"
-			(uuid "784f6607-6fb3-40c0-ae5c-ea1aa75c91b8")
 		)
 		(pin "15"
 			(uuid "a88f4d38-4d20-4292-9c6c-3433b967d5fc")
@@ -7170,7 +7110,7 @@
 				)
 			)
 		)
-		(property "Value" "24V IN"
+		(property "Value" "+ 24V IN -"
 			(at 40.64 50.8 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8142,7 +8082,7 @@
 				)
 			)
 		)
-		(property "Value" "TEMP5"
+		(property "Value" "TEMP2"
 			(at 350.52 99.06 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8224,7 +8164,7 @@
 				)
 			)
 		)
-		(property "Value" "TEMP7"
+		(property "Value" "TEMP6"
 			(at 350.52 139.7 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8707,7 +8647,7 @@
 				)
 			)
 		)
-		(property "Value" "TEMP4"
+		(property "Value" "TEMP7"
 			(at 238.76 160.02 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10042,6 +9982,514 @@
 			(justify right bottom)
 		)
 		(uuid "e9736371-f1eb-4037-804c-2a79bdd44cf1")
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x03")
+		(at 152.4 95.25 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "698f53a9-f672-46ac-a898-57ad5769a2f3")
+		(property "Reference" "J2"
+			(at 152.4 90.17 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "UART"
+			(at 152.4 100.33 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+			(at 152.4 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 152.4 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Serial for flashing / console (ESP32 side): 1 GND, 2 IO3/RXD0 (= TACH1), 3 IO1/TXD0 (= PWM1). Unplug FAN1 while in use."
+			(at 152.4 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin1" "GND"
+			(at 152.4 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin2" "RX"
+			(at 152.4 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin3" "TX"
+			(at 152.4 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Note" "DISCONNECT FAN1 FOR IO"
+			(at 152.4 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "11763676-d3d5-43ab-b72f-055486a75dee")
+		)
+		(pin "2"
+			(uuid "daab4bf3-9c9d-4b0a-b687-e3f98a62abd8")
+		)
+		(pin "3"
+			(uuid "c75637be-e0ff-409e-aa57-5887637a5b01")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "J2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 147.32 92.71) (xy 144.78 92.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "94d63048-36fc-4e0d-8ead-0f8cb5dbb4db")
+	)
+	(label "GND"
+		(at 144.78 92.71 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "5d511ff0-a67f-4f7a-a5e3-448eb5f14496")
+	)
+	(wire
+		(pts
+			(xy 147.32 95.25) (xy 144.78 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e99ea4ae-3664-41a5-bc6c-52bad9f5c550")
+	)
+	(label "TACH1"
+		(at 144.78 95.25 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "97859fbd-627a-41a4-a646-00ed05d3892b")
+	)
+	(wire
+		(pts
+			(xy 147.32 97.79) (xy 144.78 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1708b064-19aa-4724-ba45-3f9e5d8beb78")
+	)
+	(label "PWM1"
+		(at 144.78 97.79 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "7f9af6c8-db75-4019-aa11-73d909ed82c0")
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x03")
+		(at 152.4 115.57 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "66e9cb1a-2c39-4741-bd24-dfc93748afdc")
+		(property "Reference" "J3"
+			(at 152.4 110.49 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "RESET"
+			(at 152.4 120.65 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+			(at 152.4 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 152.4 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Reset jumper: 1 EN, 2 GND, 3 not connected (parking). Jumper on 1-2 holds the ESP32 in reset."
+			(at 152.4 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin1" "REBOOT"
+			(at 152.4 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin2" "GND"
+			(at 152.4 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin3" "N/C"
+			(at 152.4 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "407c5f9e-7d37-4cde-8a5c-6de7f12ddc18")
+		)
+		(pin "2"
+			(uuid "d50500f4-f949-40b2-800f-6dd5715e36f9")
+		)
+		(pin "3"
+			(uuid "1055c0b9-ae15-4378-bc43-4b936c6fa539")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "J3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 147.32 113.03) (xy 144.78 113.03)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "89624c33-6534-403b-af1a-96e2aedec838")
+	)
+	(label "EN"
+		(at 144.78 113.03 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "9b258dfb-9a47-494e-9b5f-af2c49107f6a")
+	)
+	(wire
+		(pts
+			(xy 147.32 115.57) (xy 144.78 115.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e6fdf2f1-f0ba-43c9-8aac-8fc8f5799f96")
+	)
+	(label "GND"
+		(at 144.78 115.57 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "6a9cbeff-527f-47dd-8684-14d06d0fa18f")
+	)
+	(no_connect
+		(at 147.32 118.11)
+		(uuid "40e2b458-8277-47a4-9c0f-4e6cbfbe4091")
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x03")
+		(at 152.4 135.89 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "9b011d89-e3c8-4815-bda3-a6ecf28eaa74")
+		(property "Reference" "J4"
+			(at 152.4 130.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "BOOT"
+			(at 152.4 140.97 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+			(at 152.4 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 152.4 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Boot jumper: 1 IO0, 2 GND, 3 not connected (parking). Jumper on 1-2 at power-on = serial download mode."
+			(at 152.4 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin1" "BOOTLOADER"
+			(at 152.4 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin2" "GND"
+			(at 152.4 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Pin3" "N/C"
+			(at 152.4 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "fb870419-780e-4e33-9932-da0e4d1bf4ad")
+		)
+		(pin "2"
+			(uuid "9478f019-cfe1-4f60-b016-dd8c36e04d66")
+		)
+		(pin "3"
+			(uuid "59dd54fa-1605-4622-94e9-9948bb4ef958")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "J4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 147.32 133.35) (xy 144.78 133.35)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6bad57fc-dc72-48cd-a5aa-bdde08e219f6")
+	)
+	(label "IO0"
+		(at 144.78 133.35 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "544b0f7e-e8cf-4dff-9354-f35a846c0462")
+	)
+	(wire
+		(pts
+			(xy 147.32 135.89) (xy 144.78 135.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0746a2af-85fd-4bd4-9e7b-51ae601dfbc2")
+	)
+	(label "GND"
+		(at 144.78 135.89 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "b2eabfa3-f0ed-4eae-82ce-928441286557")
+	)
+	(no_connect
+		(at 147.32 138.43)
+		(uuid "6c898575-3d7a-4bbb-9bc4-2dfa26361c6b")
+	)
+	(no_connect
+		(at 71.12 109.22)
+		(uuid "7eb7b686-760d-495e-961f-24d33de71793")
 	)
 	(sheet_instances
 		(path "/"

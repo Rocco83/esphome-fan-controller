@@ -1,15 +1,53 @@
-# Gitignore settings for ESPHome
-# This is an example and may include too much for your use-case.
-# You can modify this file to suit your needs.
-/.esphome/
-/secrets.yaml
-.vscode
-.DS_Store
-._*
+# ESPHome
+.esphome/
+.platformio/
+secrets.yaml
 
-# KiCad: per-user and temporary files
-*.lck
+# Editor
+.vscode
+*.bak
+*.tmp
+*.swp
+*.swo
+*.swn
+
+# macOS metadata (AppleDouble sidecars, Finder state, resource forks)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.apdisk
+__MACOSX/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# KiCad: per-user, temporary, cache and backup files
+*.kicad_prl
 *-backups/
 _autosave-*
-*.kicad_prl
+*.lck
 *.kicad-save-*
+*.bck
+*.backup
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*-bak.kicad_pcb
+*-bak.kicad_sch
+*-save.kicad_pcb
+*-save.kicad_prl
+*-cache.lib
+*-rescue.*
+fp-info-cache
+*.net
+
+# Machine-specific Claude instructions (device address, local build wrapper)
+CLAUDE.local.md
+CLAUDE-private.md

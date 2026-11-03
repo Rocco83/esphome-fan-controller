@@ -2,7 +2,7 @@
 
 ESPHome controller for the rack's 19" fan tray:
 - **Fans:** six 120 mm PWM fans, each with its own PWM output and tachometer. FAN1 is the **LOW** zone and FAN6 the **HIGH** zone; the board's silkscreen marks them, and the tray should be mounted so that FAN1 ends up at the bottom. The fans are attached from the outside, so their depth (25 or 38 mm) is free.
-- **Probes:** six DS18B20 temperature probes (four inside the rack plus inlet and outlet) on two 1-Wire buses with room for eight, split so each bus carries one probe of every pair.
+- **Probes:** eight DS18B20 temperature probes on two 1-Wire buses: five inside the rack, inlet, outlet, and one in the other room. The hot zone has probes on both buses.
 - **Control:** one PID loop on the hot zone. The lower fans run slower than the upper ones while the bottom of the rack is cool enough, and speed is only raised when the in/out temperature difference says it helps.
 
 Files and hardware:
@@ -147,24 +147,23 @@ Each probe is named after the board connector it plugs into, and ESPHome shows i
 
 | Name (connector) | Bus | Where | Used for | ESPHome entity |
 |---|---|---|---|---|
-| TEMP1 (J21) | A | inside, front, top | hot zone (PID input) | `Rack Fan TEMP1 Front High` |
-| TEMP2 (J22) | A | inside, rear, bottom | bottom zone (gradient) | `Rack Fan TEMP2 Rear Low` |
-| TEMP3 (J23) | A | outside, where air enters the rack | outlet − inlet | `Rack Fan TEMP3 Inlet` |
-| TEMP4 (J24) | A | spare connector | — | — |
-| TEMP5 (J25) | B | inside, rear, top | hot zone (PID input) | `Rack Fan TEMP5 Rear High` |
-| TEMP6 (J26) | B | inside, front, bottom | bottom zone (gradient) | `Rack Fan TEMP6 Front Low` |
-| TEMP7 (J27) | B | outside, in the fans' exhaust | outlet − inlet, hot zone − outlet | `Rack Fan TEMP7 Outlet` |
-| TEMP8 (J28) | B | spare connector | — | — |
+| TEMP1 (J21) | A | inside, rear, top | hot zone (PID input) | `Rack Fan TEMP1 Rear High` |
+| TEMP2 (J25) | B | inside, rear, middle | hot zone (PID input) | `Rack Fan TEMP2 Rear Mid` |
+| TEMP3 (J22) | A | inside, rear, bottom | bottom zone (gradient) | `Rack Fan TEMP3 Rear Low` |
+| TEMP4 (J26) | B | inside, front, top | hot zone (PID input) | `Rack Fan TEMP4 Front High` |
+| TEMP5 (J23) | A | inside, front, bottom | bottom zone (gradient) | `Rack Fan TEMP5 Front Low` |
+| TEMP6 (J27) | B | outside, in the fans' exhaust | usefulness cap (outlet − inlet), hot zone − outlet | `Rack Fan TEMP6 Outlet` |
+| TEMP7 (J24) | A | outside, where air enters the rack | usefulness cap (outlet − inlet) | `Rack Fan TEMP7 Inlet` |
+| TEMP8 (J28) | B | in the other room | monitoring only | `Rack Fan TEMP8 Other Room` |
 
-**Cross split:** each pair (Front High / Rear High, Rear Low / Front Low, Inlet / Outlet) has one probe on each bus. If a whole bus fails (a cable crushed in the rack, one shorted probe pulls the whole bus down), the other bus still has a hot-zone probe and a bottom probe, so control carries on instead of going to the 100% emergency. The numbers follow the board connectors (TEMP1–4 = bus A, TEMP5–8 = bus B), which is why the six probes are not TEMP1–6 in a row.
+**Buses:** odd connectors (TEMP1, 3, 5, 7) are bus A, even ones (TEMP2, 4, 6, 8) bus B. The hot zone has probes on both buses (Rear High on A, Rear Mid and Front High on B), so a whole bus failing (a cable crushed in the rack, one shorted probe pulls the whole bus down) still leaves a hot-zone reading and control carries on instead of going to the 100% emergency. Both bottom probes are on bus A. Cables: TEMP1–5 are 2 m (inside the rack), TEMP6–8 are 5 m.
 
 A DS18B20 is identified by its 64-bit **address**, not by the connector. The name only holds if each probe goes into the connector its address is assigned to (see setup below).
 
 Zones:
-- **Hot zone** = the hotter of Front High and Rear High.
-- **Bottom zone** = the hotter of Rear Low (TEMP2) and Front Low (TEMP6).
-
-**Front Low (TEMP6)** was first left out, because only 5 probes were on hand and it reads close to the Inlet. It is now a regular probe in the firmware. With only 5 probes it simply reads nothing, and the bottom zone uses TEMP2 alone.
+- **Hot zone** = the hottest of Rear High (TEMP1), Rear Mid (TEMP2) and Front High (TEMP4).
+- **Bottom zone** = the hotter of Rear Low (TEMP3) and Front Low (TEMP5).
+- **Other Room** (TEMP8) only feeds `Delta Inlet-Other Room`: positive means the other room is colder than the air entering the rack, so bringing its air in (external fans) would help. It does not change the rack fans.
 
 ### What happens when a probe fails
 
@@ -172,17 +171,19 @@ Every failure falls back to more cooling, never less:
 
 | Failure | Effect |
 |---|---|
-| one high probe | the hot zone uses the other one |
-| both high probes | **emergency: all fans 100%** |
-| both bottom probes (TEMP2 and TEMP6) | no gradient: lower fans run like the top one |
+| one or two hot-zone probes | the hot zone uses the ones left |
+| all three hot-zone probes | **emergency: all fans 100%** |
+| both bottom probes (TEMP3 and TEMP5) | no gradient: lower fans run like the top one |
 | inlet or outlet | usefulness cap off |
-| a whole bus (A or B) | one hot, one bottom probe left: control continues, usefulness cap off |
+| bus A | Rear Mid and Front High keep control; no gradient, usefulness cap off |
+| bus B | Rear High keeps control; usefulness cap off, no Other Room |
+| other room | `Delta Inlet-Other Room` unavailable, nothing else |
 
-A probe that drops out reads as unavailable in Home Assistant, and the binary sensor **`Rack Fan Probe Missing`** (problem) turns on once any probe with an address set has read nothing for 30 s. Use it for an alert: with the cross split, a lost bus no longer shows up as fans at 100%.
+A probe that drops out reads as unavailable in Home Assistant, and the binary sensor **`Rack Fan Probe Missing`** (problem) turns on once any probe with an address set has read nothing for 30 s. Use it for an alert: a lost bus no longer shows up as fans at 100%.
 
 ### Wiring and setup
 
-- **Buses:** bus A on **GPIO5** (WT32 pin 7, connectors TEMP1–TEMP4 / J21–J24) and bus B on **GPIO17** (WT32 pin 8, TEMP5–TEMP8 / J25–J28); probes split as in the table above, each with a **4.7 kΩ pull-up to 3.3 V**. Power the probes with 3 wires, not parasitic.
+- **Buses:** bus A on **GPIO5** (WT32 pin 7, connectors TEMP1/3/5/7 = J21–J24) and bus B on **GPIO17** (WT32 pin 8, TEMP2/4/6/8 = J25–J28), each with a **4.7 kΩ pull-up to 3.3 V**. Power the probes with 3 wires, not parasitic.
 - **Connectors:** JST XH 3-pin vertical (B3B-XH-A): 1 GND, 2 DQ, 3 VDD. Screw terminals did not fit on the grid.
 - **Module LEDs:** the WT32-ETH01 has LED3 on GPIO5 and LED4 on GPIO17 (each 3V3 → LED → 1 kΩ → pin). They blink with bus traffic and add about 1.3 mA of pull-up, well within the DS18B20's 4 mA sink.
 - **Why two buses:** a fault on one bus leaves half the probes (one of each pair) working, and each bus's star of cables from the board stays short.
@@ -193,7 +194,7 @@ A probe that drops out reads as unavailable in Home Assistant, and the binary se
      - The log has one line per probe, with the full TEMP name.
      - Every probe shows up as **TEMPn** (assigned), **UNASSIGNED** (new: copy its address), or **wrong bus** (assigned to a TEMP of the other bus: move it).
      - Every TEMP of that bus that is **not set**, or set but **MISSING** (not found), is also listed.
-  2. Fill in `addr_temp1_front_high`, `addr_temp2_rear_low`, `addr_temp3_inlet`, `addr_temp5_rear_high`, `addr_temp6_front_low`, `addr_temp7_outlet`.
+  2. Fill in `addr_temp1_rear_high` … `addr_temp8_other_room`.
   3. Plug each probe into the connector of its name.
 
   To tell probes apart, plug them in one at a time, or warm one in your hand and watch which reading moves. **Until its address is set, a TEMP reads nothing.** Without readings for the hot zone, the fans run at 100%.
@@ -308,7 +309,7 @@ Connect the fan supply ground and the controller ground at one point.
 
 A KiCad 10 project for a **manufactured PCB** (≈ 66.5 × 87 mm, through-hole parts). It started as a perfboard design.
 
-- WT32-ETH01 mounted face down in two 1 × 13 female sockets.
+- WT32-ETH01 mounted face down in two 1 × 12 female sockets (pins 13 and 14, at the RJ45 end, hang past the board edge).
 - Six fan channels in one column, FAN1 (LOW) at the top.
 - TEMP1–TEMP8 (JST XH), power top-left, 4 × M3 holes not connected to GND.
 - Star ground: logic ground enters the WT32 through one GND pin; the module's GND, 3V3 and EN pins are declared as jumper groups.
@@ -329,7 +330,7 @@ The "Pin" column is the WT32 header pin number (footprint pad). Pins 14–26 are
 |---|---|---|---|
 | 26 | IO1 | PWM1 | FAN1 stops for about a second at each boot and during OTA reboots: the ROM boot message, then the pin idles high until `on_boot` sets 100%. It stays stopped if the ESP32 is stuck rebooting or held in reset |
 | 25 | IO3 | TACH1 | None |
-| 24 | IO0 | X | Leave unconnected (Ethernet clock, module's 10k pull-up) |
+| 24 | IO0 | BOOT header (J4) | Ethernet clock input: only the short trace to J4. Never leave the jumper on 1-2 in normal use |
 | 23 | — | GND | None |
 | 22 | IO39 | TACH2 | None (errata 80 ns glitch filtered) |
 | 21 | IO36 | TACH3 | None (errata 80 ns glitch filtered) |
@@ -339,7 +340,7 @@ The "Pin" column is the WT32 header pin number (footprint pad). Pins 14–26 are
 | 17 | IO35 | TACH6 | None |
 | 16 | IO4 | PWM3 | None |
 | 15 | IO2 | PWM4 | None |
-| 14 | — | GND | None |
+| 14 | — | GND | No socket: past the board edge |
 | 1 | EN | X | Unconnected (pin 4 carries EN) |
 | 2 | — | GND | None |
 | 3 | 3V3 | X | Same rail as pin 10; unconnected |
@@ -352,7 +353,7 @@ The "Pin" column is the WT32 header pin number (footprint pad). Pins 14–26 are
 | 10 | 3V3 | 3.3V | Supply for the pull-ups and probes, well under 50 mA |
 | 11 | — | GND | None |
 | 12 | 5V | +5V | Fed from the TSR 1-2450 |
-| 13 | LINK | X | Unconnected |
+| 13 | LINK | X | No socket: past the board edge |
 
 Apart from FAN1, every fan sits at 100% from power-on until the firmware takes over.
 
@@ -361,7 +362,7 @@ Apart from FAN1, every fan sits at 100% from power-on until the firmware takes o
 - TACH must use 17, 21, 22 (input-only). Never put a tach on 26 (IO1, driven at boot), and avoid the LED pins 7 and 8.
 - 1-Wire works on any output-capable pin except 15 (IO2) and 18 (IO12).
 
-**Serial:** UART0 (GPIO1/3) carries FAN1, so there is no serial console at runtime; logs come over the API and the web server. To flash over serial, take the module out of its sockets (or, later, use a programming header with IO0 to GND). After the first flash, update over the network.
+**Serial:** UART0 (GPIO1/3) carries FAN1, so there is no serial console at runtime; logs come over the API and the web server. To flash over serial, use the UART header J2 with the BOOT jumper J4 (see the PCB README), or take the module out of its sockets. After the first flash, update over the network.
 
 **Sources:**
 - [ESP32 datasheet v5.3](https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf): strapping pins, IO_MUX reset states
@@ -390,7 +391,7 @@ Tuning numbers exposed in Home Assistant:
 
 Defaults are starting points to tune on the real rack.
 
-The pin map matches `rack-fan-pcb/` exactly. The probes are cross split between the buses (see Temperature probes); any probe can move to the other bus by changing its `one_wire_id` and plugging it into a connector of that bus.
+The pin map matches `rack-fan-pcb/` exactly. Odd TEMP connectors are bus A, even ones bus B (see Temperature probes); any probe can move to the other bus by changing its `one_wire_id` and plugging it into a connector of that bus.
 
 Validated and compiled (`esphome compile`) on ESPHome 2026.10.1 with ESP-IDF; not yet run on hardware.
 
@@ -444,7 +445,7 @@ Status: **have** = on hand, **buy** = to order, **check** = verify whether you a
 | Qty | Ref | Item | Why | Status |
 |---|---|---|---|---|
 | 1 | U1 | WT32-ETH01 | ESP32 with wired Ethernet | check |
-| 2 | U1 | 1 × 13 female header socket, 2.54 mm | The WT32-ETH01 plugs in and can be removed | buy |
+| 2 | U1 | 1 × 12 female header socket, 2.54 mm (or a 1 × 13 cut down) | The WT32-ETH01 plugs in and can be removed | buy |
 | 1 | — | USB-serial adapter, **3.3 V** logic | The WT32-ETH01 has no USB; first flash only | check |
 | 6 | Q1–Q6 | 2N3904 (TO-92) | Open-collector PWM stage per fan | buy |
 | 6 | R1–R6 | 4.7 kΩ, ¼ W axial (7.62 mm pitch, lying) | Base resistors | buy |
@@ -453,6 +454,8 @@ Status: **have** = on hand, **buy** = to order, **check** = verify whether you a
 | 2 | R31, R32 | 4.7 kΩ | 1-Wire pull-ups, one per bus (2.2 kΩ for long cables) | buy |
 | 1 | — | PCB from `rack-fan-pcb/` (≈ 66.5 × 87 mm) + enclosure | The board | buy |
 | 4 | H1–H4 | M3 screws + standoffs (holes not connected to GND) | Mounting | buy |
+| 3 | J2–J4 | 1 × 3 male pin header, 2.54 mm | UART (GND/RX/TX), RESET (EN), BOOT (IO0) | buy |
+| 2 | — | 2.54 mm jumper | RESET and BOOT, parked on pins 2-3 | buy |
 
 ### Connectors and cabling
 
@@ -462,7 +465,7 @@ Status: **have** = on hand, **buy** = to order, **check** = verify whether you a
 | 0–6 | — | 4-pin fan extension cable, e.g. Noctua NA-EC1 | Only if the fan leads don't reach the board | check |
 | 1 | J5 | DC barrel jack **5.5/2.5 mm**, PCB mount, ≥ 2.5 A (DC-005 style) | 24 V in from the GST90A24-P1M | buy |
 | (1) | J1 | 2-pin screw terminal, 5.08 mm | 24 V in from an XLG instead of J5 | if XLG |
-| 8 | J21–J28 | JST XH 3-pin vertical header (B3B-XH-A) | TEMP1–TEMP8: DS18B20 probes (GND, DQ, 3V3), 4 per bus | buy |
+| 8 | J21–J28 | JST XH 3-pin vertical header (B3B-XH-A) | TEMP1–TEMP8: DS18B20 probes (GND, DQ, 3V3); odd on bus A, even on bus B | buy |
 | 8 | — | JST XHP-3 housing + 24 SXH crimp contacts | Plugs on the probe cables | buy |
 | — | — | 3-core cable | 1-Wire bus, as a line, not a star | check |
 
@@ -470,8 +473,8 @@ Status: **have** = on hand, **buy** = to order, **check** = verify whether you a
 
 | Qty | Item | Why | Status |
 |---|---|---|---|
-| 5 | DS18B20 (waterproof probe) | Front High, Rear High, Rear Low, Inlet, Outlet | have |
-| 1+ | DS18B20 | TEMP6 Front Low, plus a spare | buy |
+| 5 | DS18B20 (waterproof probe), 2 m | TEMP1–TEMP5, inside the rack | have |
+| 3 | DS18B20 (waterproof probe), 5 m | TEMP6 Outlet, TEMP7 Inlet, TEMP8 Other Room | have |
 
 ### Mechanical
 
