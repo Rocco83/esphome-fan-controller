@@ -1,0 +1,312 @@
+# Rack fan controller - TEST RIG firmware (WT32-ETH01 face up on a breadboard,
+# 2 fan channels moved by jumper wires). Wiring and procedure: README.md.
+#
+# Drives all 6 PWM pins of the main board and counts all 8 tach-capable inputs
+# (the 6 TACH pins plus the 2 1-Wire pins), so every pin can be checked by
+# moving a fan's PWM wire / tach wire from pin to pin.
+# Names carry the WT32 header pin number and the GPIO, e.g. "PWM1 pin26 IO1".
+
+substitutions:
+  friendly_name: "Rack Fan Test"
+
+esphome:
+  name: rack-fan-test
+  # The LEDC outputs start at level 0, which with inverted: true switches the
+  # transistors on and stops the fans: go to 100% as soon as they exist.
+  on_boot:
+    priority: 700
+    then:
+      - lambda: |-
+          for (auto *pwm : {id(pwm_1), id(pwm_2), id(pwm_3), id(pwm_4), id(pwm_5), id(pwm_6)})
+            pwm->set_level(1.0f);
+
+esp32:
+  board: wt32-eth01
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      # GPIO1 (U0TXD) is PWM1: keep ESP-IDF's own messages off it
+      CONFIG_ESP_CONSOLE_NONE: y
+      CONFIG_BOOTLOADER_LOG_LEVEL_NONE: y
+
+logger:
+  level: DEBUG
+  # GPIO1/GPIO3 (UART0) are PWM1 and TACH1
+  baud_rate: 0
+
+api:
+
+ota:
+  - platform: esphome
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    pin: GPIO0
+    mode: CLK_EXT_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+web_server:
+  port: 80
+
+#########################
+# PWM OUTPUTS (same pins as the main board)
+# Each drives a 2N3904 open collector on the fan's PWM wire, so the level is
+# inverted: GPIO low = transistor off = fan 100%.
+
+output:
+  - platform: ledc
+    id: pwm_1
+    pin: GPIO1                       # WT32 pin 26
+    inverted: true
+    frequency: 25000 Hz
+    zero_means_zero: true
+  - platform: ledc
+    id: pwm_2
+    pin:
+      number: GPIO12                 # WT32 pin 18 (strapping: kept low by the 100k)
+      ignore_strapping_warning: true
+    inverted: true
+    frequency: 25000 Hz
+    zero_means_zero: true
+  - platform: ledc
+    id: pwm_3
+    pin: GPIO4                       # WT32 pin 16
+    inverted: true
+    frequency: 25000 Hz
+    zero_means_zero: true
+  - platform: ledc
+    id: pwm_4
+    pin:
+      number: GPIO2                  # WT32 pin 15 (strapping: kept low by the 100k)
+      ignore_strapping_warning: true
+    inverted: true
+    frequency: 25000 Hz
+    zero_means_zero: true
+  - platform: ledc
+    id: pwm_5
+    pin: GPIO32                      # WT32 pin 5
+    inverted: true
+    frequency: 25000 Hz
+    zero_means_zero: true
+  - platform: ledc
+    id: pwm_6
+    pin: GPIO33                      # WT32 pin 6
+    inverted: true
+    frequency: 25000 Hz
+    zero_means_zero: true
+
+# One duty slider per PWM pin, plus one for all of them (0-100%)
+number:
+  - platform: template
+    id: duty_1
+    name: "PWM1 pin26 IO1 duty"
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: id(pwm_1).set_level(x / 100.0f);
+  - platform: template
+    id: duty_2
+    name: "PWM2 pin18 IO12 duty"
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: id(pwm_2).set_level(x / 100.0f);
+  - platform: template
+    id: duty_3
+    name: "PWM3 pin16 IO4 duty"
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: id(pwm_3).set_level(x / 100.0f);
+  - platform: template
+    id: duty_4
+    name: "PWM4 pin15 IO2 duty"
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: id(pwm_4).set_level(x / 100.0f);
+  - platform: template
+    id: duty_5
+    name: "PWM5 pin5 IO32 duty"
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: id(pwm_5).set_level(x / 100.0f);
+  - platform: template
+    id: duty_6
+    name: "PWM6 pin6 IO33 duty"
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: id(pwm_6).set_level(x / 100.0f);
+  - platform: template
+    id: duty_all
+    name: "All PWM duty"
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: |-
+          for (auto *n : {id(duty_1), id(duty_2), id(duty_3), id(duty_4), id(duty_5), id(duty_6)}) {
+            auto call = n->make_call();
+            call.set_value(x);
+            call.perform();
+          }
+
+#########################
+# TACH INPUTS: 8 hardware pulse counters (the ESP32 has exactly 8)
+# The 10k pull-up to 3.3 V sits on the test channel, so the pin it is moved to
+# needs no pull-up of its own (35/36/39 have none).
+
+sensor:
+  - platform: pulse_counter
+    name: "TACH1 pin25 IO3 rpm"
+    pin:
+      number: GPIO3
+      mode: { input: true, pullup: true }
+    internal_filter: 13us
+    update_interval: 2s
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    filters: [multiply: 0.5]          # 2 pulses per revolution
+  - platform: pulse_counter
+    name: "TACH2 pin22 IO39 rpm"
+    pin:
+      number: GPIO39
+      mode: { input: true, pullup: false }
+    internal_filter: 13us
+    update_interval: 2s
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    filters: [multiply: 0.5]
+  - platform: pulse_counter
+    name: "TACH3 pin21 IO36 rpm"
+    pin:
+      number: GPIO36
+      mode: { input: true, pullup: false }
+    internal_filter: 13us
+    update_interval: 2s
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    filters: [multiply: 0.5]
+  - platform: pulse_counter
+    name: "TACH4 pin20 IO15 rpm"
+    pin:
+      number: GPIO15
+      ignore_strapping_warning: true  # high at boot = default
+      mode: { input: true, pullup: true }
+    internal_filter: 13us
+    update_interval: 2s
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    filters: [multiply: 0.5]
+  - platform: pulse_counter
+    name: "TACH5 pin19 IO14 rpm"
+    pin:
+      number: GPIO14
+      mode: { input: true, pullup: true }
+    internal_filter: 13us
+    update_interval: 2s
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    filters: [multiply: 0.5]
+  - platform: pulse_counter
+    name: "TACH6 pin17 IO35 rpm"
+    pin:
+      number: GPIO35
+      mode: { input: true, pullup: false }
+    internal_filter: 13us
+    update_interval: 2s
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    filters: [multiply: 0.5]
+  # the two 1-Wire pins of the main board, used here as tach inputs
+  - platform: pulse_counter
+    name: "ONEWIRE_A pin7 IO5 rpm"
+    pin:
+      number: GPIO5
+      ignore_strapping_warning: true  # high at boot = default
+      mode: { input: true, pullup: true }
+    internal_filter: 13us
+    update_interval: 2s
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    filters: [multiply: 0.5]
+  - platform: pulse_counter
+    name: "ONEWIRE_B pin8 IO17 rpm"
+    pin:
+      number: GPIO17
+      mode: { input: true, pullup: true }
+    internal_filter: 13us
+    update_interval: 2s
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    filters: [multiply: 0.5]
+
+  - platform: uptime
+    name: "${friendly_name} Uptime"
+    update_interval: 60s
+
+text_sensor:
+  - platform: ethernet_info
+    ip_address:
+      name: "${friendly_name} IP Address"
+  - platform: version
+    name: "${friendly_name} ESPHome Version"
+    hide_timestamp: true
+
+# Sweep all six PWM pins 100 -> 75 -> 50 -> 25 -> 0 -> 100 %, 10 s per step
+script:
+  - id: sweep
+    mode: restart
+    then:
+      - number.set: { id: duty_all, value: 100 }
+      - delay: 10s
+      - number.set: { id: duty_all, value: 75 }
+      - delay: 10s
+      - number.set: { id: duty_all, value: 50 }
+      - delay: 10s
+      - number.set: { id: duty_all, value: 25 }
+      - delay: 10s
+      - number.set: { id: duty_all, value: 0 }
+      - delay: 10s
+      - number.set: { id: duty_all, value: 100 }
+
+button:
+  - platform: template
+    name: "Sweep all PWM"
+    on_press:
+      - script.execute: sweep
+  - platform: restart
+    name: "${friendly_name} Restart"

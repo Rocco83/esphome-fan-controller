@@ -5,3 +5,11 @@
 /secrets.yaml
 .vscode
 .DS_Store
+._*
+
+# KiCad: per-user and temporary files
+*.lck
+*-backups/
+_autosave-*
+*.kicad_prl
+*.kicad-save-*

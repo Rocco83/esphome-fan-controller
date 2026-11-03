@@ -1,8 +1,8 @@
 substitutions:
-  friendly_name: "Rack Fan"
+  friendly_name: "Server Room Fans"
 
 esphome:
-  name: rack-fan
+  name: serverroom-fan
 
 # Throttle writing parameters to the internal flash memory to reduce ESP memory wear / degradation
 preferences:

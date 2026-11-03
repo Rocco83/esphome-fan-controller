@@ -1,0 +1,67 @@
+# One fan channel of the rack fan tray: PWM output, tachometer, duty readback
+# and stall detection. The duty itself is computed centrally by the
+# update_fans script in rack-fan.yaml.
+# Included 6 times from rack-fan.yaml with these vars:
+#   n             fan number, 1 = bottom of the tray, 6 = top
+#   pwm_pin        GPIO driving this fan's 2N3904 (open collector on the fan's PWM wire)
+#   pwm_strapping  "true" if pwm_pin is a strapping pin (held low at boot by
+#                  the 100k pull-down, which is what those pins want)
+#   tach_pin       GPIO reading this fan's tachometer (open collector, 10k pull-up on the board)
+#   tach_pullup    "true" to also use the internal pull-up, "false" for input-only
+#                  pins (GPIO34-39), which have none
+#   tach_strapping "true" if tach_pin is a strapping pin (held high by the tach
+#                  pull-up, which is its default level)
+
+sensor:
+  - platform: pulse_counter
+    pin:
+      number: ${tach_pin}
+      ignore_strapping_warning: ${tach_strapping}
+      mode:
+        input: true
+        pullup: ${tach_pullup}
+    # hardware glitch filter at its maximum (12.8 us): also removes the
+    # ~80 ns GPIO36/39 glitches of ESP32 erratum GPIO-3.11
+    internal_filter: 13us
+    id: rpm_${n}
+    name: "${friendly_name} Fan ${n} Speed"
+    unit_of_measurement: "RPM"
+    update_interval: 10s
+    accuracy_decimals: 0
+    filters:
+      # 2 pulses per revolution (San Ace, Noctua, standard 4-pin fans)
+      - multiply: 0.5
+
+  # Duty actually written to the fan
+  - platform: template
+    id: duty_${n}
+    name: "${friendly_name} Fan ${n} Duty"
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+
+binary_sensor:
+  # Commanded to spin but not spinning: dead fan, blocked rotor or broken tach wire
+  - platform: template
+    name: "${friendly_name} Fan ${n} Stalled"
+    device_class: problem
+    lambda: |-
+      return id(duty_${n}).state > 20.0 && id(rpm_${n}).state < 200.0;
+    filters:
+      - delayed_on: 30s
+
+output:
+  # Drives a 2N3904 (4.7k base resistor, 100k pull-down) whose collector is
+  # the fan's PWM wire; the fan pulls that wire up itself. inverted: true
+  # makes the level equal the fan's duty cycle.
+  # GPIO low (reset, no firmware) = transistor off = PWM wire high = 100%.
+  # Minimum duty and noise cap are applied by update_fans, not here.
+  - platform: ledc
+    id: pwm_${n}
+    pin:
+      number: ${pwm_pin}
+      ignore_strapping_warning: ${pwm_strapping}
+    inverted: true
+    # 25KHz is standard PC fan frequency, minimises buzzing
+    frequency: "25000 Hz"
+    # At 0, actually turn it off, otherwise the power keeps going.
+    zero_means_zero: true

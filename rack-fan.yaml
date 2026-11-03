@@ -1,0 +1,887 @@
+# Rack fan tray controller on a WT32-ETH01: 6 x 120mm PWM fans with their own
+# PWM output and tachometer, DS18B20 temperature probes (inside the rack,
+# inlet, outlet), one PID on the hot zone and a bottom-to-top speed gradient.
+# Hardware, pinout, wiring and control logic: README-rack-fan.md
+
+substitutions:
+  friendly_name: "Rack Fan"
+  default_target_temperature: "30°C"
+  # lowest duty the fans are run at when not stopped (San Ace and Noctua
+  # datasheets both specify speeds from 20%)
+  fan_min_duty: "0.20"
+
+  # DS18B20 probes, named after the board connector they plug into.
+  # Cross split: each pair (high/low/in-out) has one probe on each bus, so a
+  # failed bus (damaged cable, shorted probe) leaves one probe of each pair.
+  #   bus A (GPIO5,  TEMP1-4): TEMP1 Front High, TEMP2 Rear Low, TEMP3 Inlet
+  #   bus B (GPIO17, TEMP5-8): TEMP5 Rear High,  TEMP6 Front Low, TEMP7 Outlet
+  #   TEMP4 and TEMP8: spare connectors
+  # A DS18B20 is identified by its 64-bit address, not by the connector:
+  # flash once, read the addresses from the log (one_wire lists every device
+  # found at boot), then fill them in here and plug each probe into the
+  # connector of its name. Until then the probes read nothing and the fans
+  # run at 100% (emergency): an unassigned probe (address 0) never reports.
+  addr_temp1_front_high: "0x0000000000000000"
+  addr_temp2_rear_low: "0x0000000000000000"
+  addr_temp3_inlet: "0x0000000000000000"
+  addr_temp5_rear_high: "0x0000000000000000"
+  addr_temp6_front_low: "0x0000000000000000"
+  addr_temp7_outlet: "0x0000000000000000"
+
+  # Per-probe calibration, °C added to the reading. DS18B20 are ±0.5 °C, so
+  # two probes can disagree by up to 1 °C, which matters for the deltas.
+  # Measure with all probes bundled together, then set offsets so they agree.
+  offset_temp1_front_high: "0.0"
+  offset_temp2_rear_low: "0.0"
+  offset_temp3_inlet: "0.0"
+  offset_temp5_rear_high: "0.0"
+  offset_temp6_front_low: "0.0"
+  offset_temp7_outlet: "0.0"
+
+esphome:
+  name: rack-fan
+  # The LEDC outputs start at level 0, which with inverted: true switches every
+  # transistor on and stops the fans. Go to 100% as soon as the outputs exist;
+  # update_fans takes over from there.
+  on_boot:
+    - priority: 700
+      then:
+        - lambda: |-
+            for (auto *pwm : {id(pwm_1), id(pwm_2), id(pwm_3), id(pwm_4), id(pwm_5), id(pwm_6)})
+              pwm->set_level(1.0f);
+    # report the DS18B20 probes once at start-up (same as the Scan button)
+    - priority: -100
+      then:
+        - delay: 10s
+        - script.execute: probe_scan
+
+# Throttle writing parameters to the internal flash memory to reduce ESP memory wear / degradation
+preferences:
+  flash_write_interval: 15min
+
+
+#########################
+# ESP32 AND NETWORK SETUP
+
+esp32:
+  board: wt32-eth01
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      # GPIO1 (U0TXD) drives FAN1: keep ESP-IDF's bootloader and console
+      # output off it, so FAN1 only sees the short ROM boot message
+      CONFIG_ESP_CONSOLE_NONE: y
+      CONFIG_BOOTLOADER_LOG_LEVEL_NONE: y
+
+# pid climate log update is noisy, dial it back to warn
+logger:
+  level: DEBUG
+  # GPIO1/GPIO3 (UART0) carry FAN1 PWM and tach, so no serial logging.
+  # Logs are available over the API and the web server.
+  baud_rate: 0
+  logs:
+    climate: ERROR
+    # component includes the custom component, which file the error "Components should block for at most 20-30ms."
+    # https://github.com/esphome/issues/issues/4717
+    component: ERROR
+
+# default HA integration, OTA updater and backup http web portal
+api:
+  # fan control is standalone: don't reboot when Home Assistant is away
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+
+debug:
+  update_interval: 60s
+
+# WT32-ETH01: LAN8720 PHY, 50MHz clock from the on-board oscillator into GPIO0
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    pin: GPIO0
+    mode: CLK_EXT_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+# Web server for local diagnostics
+web_server:
+  port: 80
+
+# DS18B20 probes on two buses, each with an external 4.7k pull-up to 3.3V,
+# probes powered (3 wires, not parasitic). GPIO5 and GPIO17 carry the
+# WT32-ETH01's LED3/LED4 (1k to 3V3): they blink with bus traffic.
+one_wire:
+  # bus A (WT32 pin 7), TEMP1-4 (J21-J24): Front High, Rear Low, Inlet, spare
+  - platform: gpio
+    id: probes
+    pin:
+      number: GPIO5
+      ignore_strapping_warning: true    # high at boot = default
+  # bus B (WT32 pin 8), TEMP5-8 (J25-J28): Rear High, Front Low, Outlet, spare
+  - platform: gpio
+    id: probes_b
+    pin: GPIO17
+
+
+#########################
+# FAN CHANNELS
+# Fan 1 is the bottom of the tray, fan 6 the top.
+
+packages:
+  # WT32 pin: PWM / TACH. FAN1 = LOW zone (bottom), FAN6 = HIGH zone (top).
+  # FAN1's PWM is on GPIO1 (U0TXD): it stops for ~1 s at each boot (ROM
+  # message, then the line idles high) - accepted, see README-rack-fan.md.
+  fan1: !include  # pin 26 / pin 25
+    file: rack-fan-channel.yaml
+    vars: { n: "1", pwm_pin: GPIO1, pwm_strapping: "false", tach_pin: GPIO3, tach_pullup: "true", tach_strapping: "false" }
+  fan2: !include  # pin 18 / pin 22
+    file: rack-fan-channel.yaml
+    vars: { n: "2", pwm_pin: GPIO12, pwm_strapping: "true", tach_pin: GPIO39, tach_pullup: "false", tach_strapping: "false" }
+  fan3: !include  # pin 16 / pin 21
+    file: rack-fan-channel.yaml
+    vars: { n: "3", pwm_pin: GPIO4, pwm_strapping: "false", tach_pin: GPIO36, tach_pullup: "false", tach_strapping: "false" }
+  fan4: !include  # pin 15 / pin 20
+    file: rack-fan-channel.yaml
+    vars: { n: "4", pwm_pin: GPIO2, pwm_strapping: "true", tach_pin: GPIO15, tach_pullup: "true", tach_strapping: "true" }
+  fan5: !include  # pin 5 / pin 19
+    file: rack-fan-channel.yaml
+    vars: { n: "5", pwm_pin: GPIO32, pwm_strapping: "false", tach_pin: GPIO14, tach_pullup: "true", tach_strapping: "false" }
+  fan6: !include  # pin 6 / pin 17
+    file: rack-fan-channel.yaml
+    vars: { n: "6", pwm_pin: GPIO33, pwm_strapping: "false", tach_pin: GPIO35, tach_pullup: "false", tach_strapping: "false" }
+
+
+#########################
+# FAN CONTROL
+#
+# The PID regulates the hot zone (the hotter of front high / rear high) and
+# produces one demand. update_fans turns that demand into six duties:
+#  1. emergency: hot zone above Emergency Temperature, or no hot-zone reading
+#     -> all fans 100%, ignoring every cap below
+#  2. usefulness cap: if outlet - inlet is small, the air is already being
+#     exchanged faster than the rack heats it, and more speed mostly adds
+#     noise. Between Useful dT Low and High the cap rises linearly from
+#     Not Useful Cap to 100%.
+#  3. noise cap: Max Duty
+#  4. gradient: when the bottom zone (hotter of front low / rear low) is below
+#     the setpoint, the lower fans run slower than the top one, by up to
+#     Gradient % at fan 1, scaled down linearly to 0 at fan 6. The full
+#     gradient applies once the bottom zone is Gradient Band below setpoint.
+#  5. minimum duty: a fan that is not stopped runs at least fan_min_duty
+
+globals:
+  - id: pid_demand
+    type: float
+    initial_value: "0.0"
+  - id: emergency_active
+    type: bool
+    initial_value: "false"
+
+script:
+  # Re-scan both 1-Wire buses and report every probe found against the
+  # addresses assigned to the TEMPn probes (log + the two "bus scan" text sensors).
+  - id: probe_scan
+    then:
+      - lambda: |-
+          struct Probe { uint64_t addr; const char *name; bool bus_b; };
+          const Probe assigned[] = {
+            {(uint64_t) ${addr_temp1_front_high}, "TEMP1 Front High", false},
+            {(uint64_t) ${addr_temp2_rear_low},   "TEMP2 Rear Low",   false},
+            {(uint64_t) ${addr_temp3_inlet},      "TEMP3 Inlet",      false},
+            {(uint64_t) ${addr_temp5_rear_high},  "TEMP5 Rear High",  true},
+            {(uint64_t) ${addr_temp6_front_low},  "TEMP6 Front Low",  true},
+            {(uint64_t) ${addr_temp7_outlet},     "TEMP7 Outlet",     true},
+          };
+          auto scan = [&](one_wire::OneWireBus *bus, bool is_b, text_sensor::TextSensor *out) {
+            const char *bn = is_b ? "B (GPIO17, TEMP5-8)" : "A (GPIO5, TEMP1-4)";
+            bus->search();
+            const auto &found = bus->get_devices();
+            std::string rep;
+            ESP_LOGI("probe_scan", "bus %s: %u device(s) found", bn, (unsigned) found.size());
+            for (auto a : found) {
+              char buf[20];
+              snprintf(buf, sizeof(buf), "0x%016llx", (unsigned long long) a);
+              std::string who = "UNASSIGNED";
+              for (const auto &p : assigned)
+                if (p.addr == a)
+                  who = (p.bus_b == is_b) ? std::string(p.name)
+                                          : std::string(p.name) + " (WRONG BUS: move it to the " +
+                                            (p.bus_b ? "TEMP5-8" : "TEMP1-4") + " connectors)";
+              ESP_LOGI("probe_scan", "  %s -> %s", buf, who.c_str());
+              rep += std::string(buf) + "=" + who.substr(0, who.find(' ')) +
+                     (who.find("WRONG") != std::string::npos ? "!wrong bus" : "") + "; ";
+            }
+            std::string notset, missing;
+            for (const auto &p : assigned) {
+              if (p.bus_b != is_b) continue;
+              std::string tag = std::string(p.name).substr(0, 5);
+              if (p.addr == 0) {
+                ESP_LOGI("probe_scan", "  %s: no address set", p.name);
+                notset += tag + " ";
+              } else {
+                bool ok = false;
+                for (auto a : found) ok |= (a == p.addr);
+                if (!ok) {
+                  ESP_LOGW("probe_scan", "  %s: assigned 0x%016llx but NOT FOUND on this bus", p.name,
+                           (unsigned long long) p.addr);
+                  missing += tag + " ";
+                }
+              }
+            }
+            if (found.empty()) rep = "no probes found; ";
+            if (!missing.empty()) rep += "MISSING: " + missing + "; ";
+            if (!notset.empty()) rep += "not set: " + notset;
+            if (rep.size() > 250) rep = rep.substr(0, 247) + "...";
+            out->publish_state(rep);
+          };
+          scan(id(probes), false, id(scan_bus_a));
+          scan(id(probes_b), true, id(scan_bus_b));
+
+  - id: update_fans
+    then:
+      - lambda: |-
+          auto nan_max = [](float a, float b) {
+            if (std::isnan(a)) return b;
+            if (std::isnan(b)) return a;
+            return std::max(a, b);
+          };
+          const float hot = id(temp_control).state;
+          const float low = nan_max(id(temp_front_low).state, id(temp_rear_low).state);
+          const float t_in = id(temp_inlet).state;
+          const float t_out = id(temp_outlet).state;
+          const float setpoint = id(rack_thermostat).target_temperature;
+
+          float demand;
+          float useful_cap = 1.0f;
+          float gradient = 0.0f;
+          bool emergency = false;
+
+          if (id(manual_fan_control).state) {
+            // manual override: every fan at the same level, no caps
+            demand = id(manual_fan_control).speed / 100.0f;
+          } else if (std::isnan(hot) || hot >= id(emergency_temp).state) {
+            emergency = true;
+            demand = 1.0f;
+          } else {
+            demand = id(pid_demand);
+
+            if (!std::isnan(t_in) && !std::isnan(t_out)) {
+              const float lo = id(useful_dt_low).state;
+              const float hi = id(useful_dt_high).state;
+              const float cap_floor = id(not_useful_cap).state / 100.0f;
+              const float k = hi > lo ? clamp((t_out - t_in - lo) / (hi - lo), 0.0f, 1.0f) : 1.0f;
+              useful_cap = cap_floor + k * (1.0f - cap_floor);
+            }
+            demand = std::min({demand, useful_cap, id(max_duty).state / 100.0f});
+
+            if (!std::isnan(low) && id(gradient_band).state > 0) {
+              const float coolness = clamp((setpoint - low) / id(gradient_band).state, 0.0f, 1.0f);
+              gradient = id(gradient_pct).state / 100.0f * coolness;
+            }
+          }
+
+          id(emergency_active) = emergency;
+          id(useful_cap_sensor).publish_state(useful_cap * 100.0f);
+          id(gradient_sensor).publish_state(gradient * 100.0f);
+
+          ledc::LEDCOutput *pwm[6] = {id(pwm_1), id(pwm_2), id(pwm_3), id(pwm_4), id(pwm_5), id(pwm_6)};
+          sensor::Sensor *duty[6] = {id(duty_1), id(duty_2), id(duty_3), id(duty_4), id(duty_5), id(duty_6)};
+          for (int i = 0; i < 6; i++) {
+            // fan 1 (i = 0) gets the full gradient, fan 6 none
+            float d = demand * (1.0f - gradient * (5 - i) / 5.0f);
+            if (d > 0.0f && d < ${fan_min_duty}) d = ${fan_min_duty};
+            pwm[i]->set_level(d);
+            duty[i]->publish_state(d * 100.0f);
+          }
+
+# re-evaluate when probes, caps or the override change, not only on PID updates
+interval:
+  - interval: 5s
+    then:
+      - script.execute: update_fans
+
+climate:
+  - platform: pid
+    name: "${friendly_name} Thermostat"
+    id: rack_thermostat
+    sensor: temp_control
+    default_target_temperature: ${default_target_temperature}
+    cool_output: pid_output
+
+    # ON state change, publish the values to the x_term sensors,
+    # so that they can be viewed in HA
+    on_state:
+      - sensor.template.publish:
+          id: p_term
+          state: !lambda 'return -id(rack_thermostat).get_proportional_term() * 100.0;'
+      - sensor.template.publish:
+          id: i_term
+          state: !lambda 'return -id(rack_thermostat).get_integral_term() * 100.0;'
+      - sensor.template.publish:
+          id: d_term
+          state: !lambda 'return -id(rack_thermostat).get_derivative_term() * 100.0;'
+      - sensor.template.publish:
+          id: o_term
+          state: !lambda 'return -id(rack_thermostat).get_output_value() * 100.0;'
+      - sensor.template.publish:
+          id: in_deadband_term
+          state: !lambda 'return id(rack_thermostat).in_deadband();'
+      - sensor.template.publish:
+          id: e_term
+          state: !lambda 'return -id(rack_thermostat).get_error_value();'
+
+    visual:
+      min_temperature: 20 °C
+      max_temperature: 50 °C
+
+    # See the README for setting up these parameters.
+    # These are over ridden by the number templates below.
+    control_parameters:
+      kp: 0.3
+      ki: 0.0015
+      kd: 0
+      max_integral: 0.0
+      output_averaging_samples: 1
+      derivative_averaging_samples: 5
+
+    # How to behave when close to the target temperature?
+    deadband_parameters:
+      threshold_high: 0.4°C
+      threshold_low: -1.0°C
+      kp_multiplier: 0.0
+      ki_multiplier: 0.04
+      kd_multiplier: 0.0
+      deadband_output_averaging_samples: 15
+
+output:
+  # PID demand, turned into six fan duties by update_fans
+  - platform: template
+    id: pid_output
+    type: float
+    write_action:
+      - lambda: id(pid_demand) = state;
+      - script.execute: update_fans
+
+  # Target of the manual override fan below
+  - platform: template
+    id: manual_output
+    type: float
+    write_action:
+      - script.execute: update_fans
+
+# If you turn this on, you can manually set the speed of all fans.
+# The PID and all caps will be ignored.
+fan:
+  - platform: speed
+    id: manual_fan_control
+    output: manual_output
+    name: "Manual Fan Speed"
+
+
+number:
+
+  ## OPTIONAL:
+  # RECEIVE KP, KI and KD parameters from Home Assistant.
+  # These values will get saved to flash thus permanently over-riding
+  # the initial values set in the PID above.
+
+  # KP
+  - platform: template
+    name: kp
+    icon: mdi:chart-bell-curve
+    restore_value: true
+    initial_value: 0.3
+    min_value: 0
+    max_value: 50
+    step: 0.001
+    optimistic: true
+    set_action:
+      lambda: id(rack_thermostat).set_kp( x );
+
+  # KI
+  - platform: template
+    name: ki
+    icon: mdi:chart-bell-curve
+    restore_value: true
+    initial_value: 0.0015
+    min_value: 0
+    max_value: 50
+    step: 0.0001
+    optimistic: true
+    set_action:
+      lambda: id(rack_thermostat).set_ki( x );
+
+  # KD
+  - platform: template
+    name: kd
+    icon: mdi:chart-bell-curve
+    restore_value: true
+    initial_value: 0.0
+    min_value: -50
+    max_value: 50
+    step: 0.001
+    optimistic: true
+    set_action:
+      lambda: id(rack_thermostat).set_kd( x );
+
+  # Set threshold low
+  - platform: template
+    name: "Deadband Threshold Low"
+    icon: mdi:chart-bell-curve
+    restore_value: true
+    initial_value: -1.0
+    min_value: -20
+    max_value: 0
+    step: 0.1
+    optimistic: true
+    set_action:
+      lambda: id(rack_thermostat).set_threshold_low( x );
+
+  # Set threshold high
+  - platform: template
+    name: "Deadband Threshold High"
+    icon: mdi:chart-bell-curve
+    restore_value: true
+    initial_value: 0.4
+    min_value: 0
+    max_value: 20
+    step: 0.1
+    optimistic: true
+    set_action:
+      lambda: id(rack_thermostat).set_threshold_high( x );
+
+  # Set ki multiplier
+  - platform: template
+    name: "Deadband ki Multiplier"
+    icon: mdi:chart-bell-curve
+    restore_value: true
+    initial_value: 0.04
+    min_value: 0
+    max_value: .2
+    step: 0.01
+    optimistic: true
+    set_action:
+      lambda: id(rack_thermostat).set_ki_multiplier( x );
+
+  # Noise cap: highest duty in normal operation (not in emergency or manual)
+  - platform: template
+    id: max_duty
+    name: "${friendly_name} Max Duty"
+    icon: mdi:volume-high
+    entity_category: config
+    unit_of_measurement: "%"
+    restore_value: true
+    initial_value: 100
+    min_value: 20
+    max_value: 100
+    step: 1
+    optimistic: true
+
+  # Hot zone at or above this: all fans 100%, caps ignored
+  - platform: template
+    id: emergency_temp
+    name: "${friendly_name} Emergency Temperature"
+    icon: mdi:thermometer-alert
+    entity_category: config
+    unit_of_measurement: "°C"
+    restore_value: true
+    initial_value: 40
+    min_value: 25
+    max_value: 60
+    step: 0.5
+    optimistic: true
+
+  # Usefulness cap: outlet - inlet at or below Low -> Not Useful Cap,
+  # at or above High -> no cap
+  - platform: template
+    id: useful_dt_low
+    name: "${friendly_name} Useful dT Low"
+    icon: mdi:delta
+    entity_category: config
+    unit_of_measurement: "°C"
+    restore_value: true
+    initial_value: 1.5
+    min_value: 0
+    max_value: 10
+    step: 0.1
+    optimistic: true
+
+  - platform: template
+    id: useful_dt_high
+    name: "${friendly_name} Useful dT High"
+    icon: mdi:delta
+    entity_category: config
+    unit_of_measurement: "°C"
+    restore_value: true
+    initial_value: 4.0
+    min_value: 0
+    max_value: 20
+    step: 0.1
+    optimistic: true
+
+  - platform: template
+    id: not_useful_cap
+    name: "${friendly_name} Not Useful Cap"
+    icon: mdi:fan-chevron-down
+    entity_category: config
+    unit_of_measurement: "%"
+    restore_value: true
+    initial_value: 40
+    min_value: 20
+    max_value: 100
+    step: 1
+    optimistic: true
+
+  # Bottom-to-top gradient: fan 1 runs this much slower than fan 6
+  - platform: template
+    id: gradient_pct
+    name: "${friendly_name} Gradient"
+    icon: mdi:arrow-up-bold
+    entity_category: config
+    unit_of_measurement: "%"
+    restore_value: true
+    initial_value: 30
+    min_value: 0
+    max_value: 80
+    step: 1
+    optimistic: true
+
+  # Bottom zone this far below setpoint -> full gradient
+  - platform: template
+    id: gradient_band
+    name: "${friendly_name} Gradient Band"
+    icon: mdi:arrow-up-bold
+    entity_category: config
+    unit_of_measurement: "°C"
+    restore_value: true
+    initial_value: 2.0
+    min_value: 0.1
+    max_value: 10
+    step: 0.1
+    optimistic: true
+
+text_sensor:
+  # why the last reboot happened (power-on, watchdog, brownout, software...)
+  - platform: debug
+    reset_reason:
+      name: "${friendly_name} Reset Reason"
+
+  # Result of the last 1-Wire scan (button "Scan 1-Wire probes"):
+  # address=TEMPn for assigned probes, address=UNASSIGNED for new ones
+  - platform: template
+    id: scan_bus_a
+    name: "${friendly_name} 1-Wire bus A scan"
+    icon: mdi:thermometer-lines
+    entity_category: diagnostic
+  - platform: template
+    id: scan_bus_b
+    name: "${friendly_name} 1-Wire bus B scan"
+    icon: mdi:thermometer-lines
+    entity_category: diagnostic
+
+  - platform: ethernet_info
+    ip_address:
+      name: "${friendly_name} IP Address"
+
+  # Send Uptime in raw seconds
+  - platform: template
+    name: "${friendly_name} Uptime"
+    id: uptime_human
+    icon: mdi:clock-start
+
+  # Send version of esphome flashed
+  - platform: version
+    name: "${friendly_name} ESPHome Version"
+    icon: mdi:information
+    hide_timestamp: true
+
+binary_sensor:
+  # A probe that has an address but stopped reporting (cable, probe or bus
+  # fault). With the cross split a failed bus no longer forces the 100%
+  # emergency, so this is the alarm to watch.
+  - platform: template
+    name: "${friendly_name} Probe Missing"
+    device_class: problem
+    lambda: |-
+      struct P { uint64_t addr; sensor::Sensor *s; };
+      const P ps[] = {
+        {(uint64_t) ${addr_temp1_front_high}, id(temp_front_high)}, {(uint64_t) ${addr_temp2_rear_low}, id(temp_rear_low)},
+        {(uint64_t) ${addr_temp3_inlet}, id(temp_inlet)}, {(uint64_t) ${addr_temp5_rear_high}, id(temp_rear_high)},
+        {(uint64_t) ${addr_temp6_front_low}, id(temp_front_low)}, {(uint64_t) ${addr_temp7_outlet}, id(temp_outlet)},
+      };
+      for (const auto &p : ps)
+        if (p.addr != 0 && std::isnan(p.s->state)) return true;
+      return false;
+    filters:
+      - delayed_on: 30s
+  - platform: template
+    name: "${friendly_name} Emergency"
+    device_class: problem
+    lambda: return id(emergency_active);
+
+sensor:
+
+  # This is a bit of overkill. It sends a human readable
+  # uptime string 1h 41m 32s instead of 6092 seconds
+  - platform: uptime
+    name: "${friendly_name} Uptime"
+    id: uptime_sensor
+    update_interval: 60s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            # Custom C++ code to generate the result
+            state: !lambda |-
+              int seconds = round(x);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? to_string(days) + "d " : "") +
+                (hours ? to_string(hours) + "h " : "") +
+                (minutes ? to_string(minutes) + "m " : "") +
+                (to_string(seconds) + "s")
+              ).c_str();
+
+  ########################################################
+  # TEMPERATURE PROBES: DS18B20, TEMPn = board connector (TEMP1-4 bus A, TEMP5-8 bus B)
+  # If you don't smooth the temperature readings
+  # the PID controller over reacts to small changes.
+
+  - platform: dallas_temp
+    one_wire_id: probes
+    address: ${addr_temp1_front_high}
+    id: temp_front_high
+    name: "${friendly_name} TEMP1 Front High"
+    update_interval: 5s
+    accuracy_decimals: 2
+    filters:
+      # address still 0 = probe not assigned yet: report nothing. Without this, a
+      # 0 address auto-selects the only probe on the bus and every unassigned
+      # TEMP would show that probe's value, hiding the 100% emergency.
+      - lambda: 'return ((uint64_t) ${addr_temp1_front_high}) == 0 ? NAN : x;'
+      - offset: ${offset_temp1_front_high}
+      - exponential_moving_average: &ema
+          alpha: 0.1
+          send_every: 1
+
+  - platform: dallas_temp
+    one_wire_id: probes_b
+    address: ${addr_temp5_rear_high}
+    id: temp_rear_high
+    name: "${friendly_name} TEMP5 Rear High"
+    update_interval: 5s
+    accuracy_decimals: 2
+    filters:
+      # address still 0 = probe not assigned yet: report nothing. Without this, a
+      # 0 address auto-selects the only probe on the bus and every unassigned
+      # TEMP would show that probe's value, hiding the 100% emergency.
+      - lambda: 'return ((uint64_t) ${addr_temp5_rear_high}) == 0 ? NAN : x;'
+      - offset: ${offset_temp5_rear_high}
+      - exponential_moving_average: *ema
+
+  - platform: dallas_temp
+    one_wire_id: probes
+    address: ${addr_temp2_rear_low}
+    id: temp_rear_low
+    name: "${friendly_name} TEMP2 Rear Low"
+    update_interval: 5s
+    accuracy_decimals: 2
+    filters:
+      # address still 0 = probe not assigned yet: report nothing. Without this, a
+      # 0 address auto-selects the only probe on the bus and every unassigned
+      # TEMP would show that probe's value, hiding the 100% emergency.
+      - lambda: 'return ((uint64_t) ${addr_temp2_rear_low}) == 0 ? NAN : x;'
+      - offset: ${offset_temp2_rear_low}
+      - exponential_moving_average: *ema
+
+  - platform: dallas_temp
+    one_wire_id: probes_b
+    address: ${addr_temp6_front_low}
+    id: temp_front_low
+    name: "${friendly_name} TEMP6 Front Low"
+    update_interval: 5s
+    accuracy_decimals: 2
+    filters:
+      # address still 0 = probe not assigned yet: report nothing. Without this, a
+      # 0 address auto-selects the only probe on the bus and every unassigned
+      # TEMP would show that probe's value, hiding the 100% emergency.
+      - lambda: 'return ((uint64_t) ${addr_temp6_front_low}) == 0 ? NAN : x;'
+      - offset: ${offset_temp6_front_low}
+      - exponential_moving_average: *ema
+
+  - platform: dallas_temp
+    one_wire_id: probes
+    address: ${addr_temp3_inlet}
+    id: temp_inlet
+    name: "${friendly_name} TEMP3 Inlet"
+    update_interval: 5s
+    accuracy_decimals: 2
+    filters:
+      # address still 0 = probe not assigned yet: report nothing. Without this, a
+      # 0 address auto-selects the only probe on the bus and every unassigned
+      # TEMP would show that probe's value, hiding the 100% emergency.
+      - lambda: 'return ((uint64_t) ${addr_temp3_inlet}) == 0 ? NAN : x;'
+      - offset: ${offset_temp3_inlet}
+      - exponential_moving_average: *ema
+
+  - platform: dallas_temp
+    one_wire_id: probes_b
+    address: ${addr_temp7_outlet}
+    id: temp_outlet
+    name: "${friendly_name} TEMP7 Outlet"
+    update_interval: 5s
+    accuracy_decimals: 2
+    filters:
+      # address still 0 = probe not assigned yet: report nothing. Without this, a
+      # 0 address auto-selects the only probe on the bus and every unassigned
+      # TEMP would show that probe's value, hiding the 100% emergency.
+      - lambda: 'return ((uint64_t) ${addr_temp7_outlet}) == 0 ? NAN : x;'
+      - offset: ${offset_temp7_outlet}
+      - exponential_moving_average: *ema
+
+  ########################################################
+  # DERIVED TEMPERATURES
+
+  # What the PID regulates: the hotter of the two high probes
+  - platform: template
+    id: temp_control
+    name: "${friendly_name} Temperature Hot Zone"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: |-
+      const float f = id(temp_front_high).state, r = id(temp_rear_high).state;
+      if (std::isnan(f)) return r;
+      if (std::isnan(r)) return f;
+      return std::max(f, r);
+
+  # Heat picked up by the air crossing the rack. Small = air already
+  # exchanged faster than the rack heats it, more speed buys little.
+  - platform: template
+    name: "${friendly_name} Delta Outlet-Inlet"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: return id(temp_outlet).state - id(temp_inlet).state;
+
+  # Hot zone vs outlet. Large = heat pocketed inside, not reaching the fans
+  # (recirculation or blocked path) rather than a lack of airflow.
+  - platform: template
+    name: "${friendly_name} Delta Hot Zone-Outlet"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: return id(temp_control).state - id(temp_outlet).state;
+
+  # Hot zone vs bottom zone
+  - platform: template
+    name: "${friendly_name} Delta High-Low"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: |-
+      const float fl = id(temp_front_low).state, rl = id(temp_rear_low).state;
+      const float low = std::isnan(fl) ? rl : (std::isnan(rl) ? fl : std::max(fl, rl));
+      return id(temp_control).state - low;
+
+  ########################################################
+  # CONTROLLER DIAGNOSTICS
+
+  - platform: template
+    id: useful_cap_sensor
+    name: "${friendly_name} Usefulness Cap"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+
+  - platform: template
+    id: gradient_sensor
+    name: "${friendly_name} Gradient Applied"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+
+  - platform: template
+    name: "${friendly_name} p term"
+    id: p_term
+    unit_of_measurement: "%"
+    accuracy_decimals: 2
+    entity_category: diagnostic
+
+  - platform: template
+    name: "${friendly_name} i term"
+    id: i_term
+    unit_of_measurement: "%"
+    accuracy_decimals: 2
+    entity_category: diagnostic
+
+  - platform: template
+    name: "${friendly_name} d term"
+    id: d_term
+    unit_of_measurement: "%"
+    accuracy_decimals: 2
+    entity_category: diagnostic
+
+  - platform: template
+    name: "${friendly_name} output value"
+    unit_of_measurement: "%"
+    id: o_term
+    accuracy_decimals: 2
+
+  - platform: template
+    name: "${friendly_name} error value"
+    id: e_term
+    accuracy_decimals: 2
+
+  - platform: template
+    name: "${friendly_name} is in deadband"
+    id: in_deadband_term
+    accuracy_decimals: 0
+
+switch:
+  # Expose an ESP32 restart button to HA
+  - platform: restart
+    name: "${friendly_name} ESP32 Restart"
+    id: automate_fan_restart
+
+# Restart every day at 12:30am.
+# I've had some memory issues lockup
+# the device after a couple weeks
+time:
+  - platform: homeassistant
+    on_time:
+      # Every morning at 12:30am
+      - seconds: 0
+        minutes: 30
+        hours: 0
+        then:
+          - switch.turn_on: automate_fan_restart
+
+# I was able to find good KP,KI,KD values manually, per the instructions,
+# but you can try pressing the autotune button from home assistant and copying the
+# values it produces.
+# See more at: https://esphome.io/components/climate/pid.html#climate-pid-autotune-action
+button:
+  - platform: template
+    name: "${friendly_name} Scan 1-Wire probes"
+    icon: mdi:magnify
+    entity_category: diagnostic
+    on_press:
+      - script.execute: probe_scan
+  - platform: template
+    name: "${friendly_name} PID Autotune"
+    on_press:
+      - climate.pid.autotune: rack_thermostat
