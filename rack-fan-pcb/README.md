@@ -109,7 +109,7 @@ Alternatives rejected:
 - **Connectors:** JST XH 3-pin vertical (B3B-XH-A), pin order 1 GND, 2 DQ, 3 VDD.
   - 5.08 mm screw terminals were the first choice but **did not fit**: four in a row need ~17 holes plus spacing, and only ~18 were free beside the fan resistors.
   - XH needs a crimped plug on each probe cable.
-- **Probes and names:** eight probes, named after their connector: TEMP1 Rear High, TEMP2 Rear Mid, TEMP3 Rear Low, TEMP4 Front High, TEMP5 Front Low (2 m cables, inside the rack), TEMP6 Outlet, TEMP7 Inlet, TEMP8 Other Room (5 m). ESPHome shows them as `Rack Fan TEMP1 Rear High` … `Rack Fan TEMP8 Other Room`. Each name is bound to a probe address in the firmware, so each probe must go into the connector of its name.
+- **Probes and names:** eight probes, named after their connector: TEMP1 Rear High, TEMP2 Rear Mid, TEMP3 Rear Low, TEMP4 Front High, TEMP5 Front Low, TEMP6 Outlet, TEMP7 Inlet, TEMP8 Other Room. Cables: 5 m on TEMP4, 6 and 8, 2 m on the others. ESPHome shows them as `Rack Fan TEMP1 Rear High` … `Rack Fan TEMP8 Other Room`. Each name is bound to a probe address in the firmware, so each probe must go into the connector of its name.
 
 ### 6. Power
 

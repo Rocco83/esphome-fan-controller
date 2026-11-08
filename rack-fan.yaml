@@ -9,6 +9,11 @@ substitutions:
   # lowest duty the fans are run at when not stopped (San Ace and Noctua
   # datasheets both specify speeds from 20%)
   fan_min_duty: "0.20"
+  # A stopped NF-F12 24V-3000 does not start below 25% (bench test
+  # 2026-11-05: 20% and 22% stay stopped, 25% starts at ~715 RPM; once
+  # running it keeps turning down to ~15%). A fan commanded below this duty
+  # that reads 0 RPM gets this duty until its tach shows it turning.
+  fan_start_duty: "0.25"
 
   # DS18B20 probes, named after the board connector they plug into.
   # Odd connectors are bus A (GPIO5), even ones bus B (GPIO17):
@@ -24,10 +29,10 @@ substitutions:
   addr_temp1_rear_high: "0x02000000d5569f28"     # 2 m
   addr_temp2_rear_mid: "0x92000000d77ed028"      # 2 m
   addr_temp3_rear_low: "0x10000000d5669628"      # 2 m
-  addr_temp4_front_high: "0xf9000000da46e828"    # 2 m
+  addr_temp4_front_high: "0xb90b2574b8f42d28"    # 5 m (2 m does not reach front high)
   addr_temp5_front_low: "0x7a000000d7a63828"     # 2 m
   addr_temp6_outlet: "0x120b257459e14d28"        # 5 m
-  addr_temp7_inlet: "0xb90b2574b8f42d28"         # 5 m
+  addr_temp7_inlet: "0xf9000000da46e828"         # 2 m (bottom centre, 2 m is plenty)
   addr_temp8_other_room: "0x750b257509916728"    # 5 m
 
   # Per-probe calibration, °C added to the reading. DS18B20 are ±0.5 °C, so
@@ -176,6 +181,8 @@ packages:
 #     Gradient % at fan 1, scaled down linearly to 0 at fan 6. The full
 #     gradient applies once the bottom zone is Gradient Band below setpoint.
 #  5. minimum duty: a fan that is not stopped runs at least fan_min_duty
+#  6. kick-start: a fan below fan_start_duty that reads 0 RPM runs at
+#     fan_start_duty until it turns (it would not start by itself)
 
 globals:
   - id: pid_demand
@@ -186,6 +193,12 @@ globals:
     initial_value: "false"
 
 script:
+  - id: fan_test_timeout
+    mode: restart
+    then:
+      - delay: 60min
+      - switch.turn_off: fan_test_mode
+
   # Re-scan both 1-Wire buses and report every probe found against the
   # addresses assigned to the TEMPn probes (log + the two "bus scan" text sensors).
   - id: probe_scan
@@ -290,16 +303,25 @@ script:
             }
           }
 
-          id(emergency_active) = emergency;
+          // test mode: each fan at its own test slider, raw: no caps, no
+          // gradient, no minimum duty, 0% allowed, emergency ignored
+          const bool test = id(fan_test_mode).state;
+          id(emergency_active) = emergency && !test;
           id(useful_cap_sensor).publish_state(useful_cap * 100.0f);
           id(gradient_sensor).publish_state(gradient * 100.0f);
 
           ledc::LEDCOutput *pwm[6] = {id(pwm_1), id(pwm_2), id(pwm_3), id(pwm_4), id(pwm_5), id(pwm_6)};
           sensor::Sensor *duty[6] = {id(duty_1), id(duty_2), id(duty_3), id(duty_4), id(duty_5), id(duty_6)};
+          sensor::Sensor *rpm[6] = {id(rpm_1), id(rpm_2), id(rpm_3), id(rpm_4), id(rpm_5), id(rpm_6)};
+          number::Number *test_duty[6] = {id(test_duty_1), id(test_duty_2), id(test_duty_3),
+                                          id(test_duty_4), id(test_duty_5), id(test_duty_6)};
           for (int i = 0; i < 6; i++) {
             // fan 1 (i = 0) gets the full gradient, fan 6 none
             float d = demand * (1.0f - gradient * (5 - i) / 5.0f);
             if (d > 0.0f && d < ${fan_min_duty}) d = ${fan_min_duty};
+            // kick-start: stopped (0 RPM) and asked for less than it needs to start
+            if (d > 0.0f && d < ${fan_start_duty} && rpm[i]->state == 0.0f) d = ${fan_start_duty};
+            if (test) d = test_duty[i]->state / 100.0f;
             pwm[i]->set_level(d);
             duty[i]->publish_state(d * 100.0f);
           }
@@ -569,6 +591,87 @@ number:
     max_value: 10
     step: 0.1
     optimistic: true
+
+  # FAN TEST MODE: per-fan duty, used only while "Fan Test Mode" is on
+  # (0-100 %, raw: 0 % is really 0 %, no minimum duty)
+  - platform: template
+    id: test_duty_1
+    name: "${friendly_name} Fan 1 Test Duty"
+    icon: mdi:fan-alert
+    entity_category: config
+    unit_of_measurement: "%"
+    initial_value: 100
+    min_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    on_value:
+      - script.execute: update_fans
+  - platform: template
+    id: test_duty_2
+    name: "${friendly_name} Fan 2 Test Duty"
+    icon: mdi:fan-alert
+    entity_category: config
+    unit_of_measurement: "%"
+    initial_value: 100
+    min_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    on_value:
+      - script.execute: update_fans
+  - platform: template
+    id: test_duty_3
+    name: "${friendly_name} Fan 3 Test Duty"
+    icon: mdi:fan-alert
+    entity_category: config
+    unit_of_measurement: "%"
+    initial_value: 100
+    min_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    on_value:
+      - script.execute: update_fans
+  - platform: template
+    id: test_duty_4
+    name: "${friendly_name} Fan 4 Test Duty"
+    icon: mdi:fan-alert
+    entity_category: config
+    unit_of_measurement: "%"
+    initial_value: 100
+    min_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    on_value:
+      - script.execute: update_fans
+  - platform: template
+    id: test_duty_5
+    name: "${friendly_name} Fan 5 Test Duty"
+    icon: mdi:fan-alert
+    entity_category: config
+    unit_of_measurement: "%"
+    initial_value: 100
+    min_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    on_value:
+      - script.execute: update_fans
+  - platform: template
+    id: test_duty_6
+    name: "${friendly_name} Fan 6 Test Duty"
+    icon: mdi:fan-alert
+    entity_category: config
+    unit_of_measurement: "%"
+    initial_value: 100
+    min_value: 0
+    max_value: 100
+    step: 1
+    optimistic: true
+    on_value:
+      - script.execute: update_fans
 
 text_sensor:
   # why the last reboot happened (power-on, watchdog, brownout, software...)
@@ -904,6 +1007,23 @@ sensor:
     accuracy_decimals: 0
 
 switch:
+  # Fan test mode: every fan follows its own "Fan N Test Duty" slider, with
+  # the control logic and the emergency bypassed. Always off after a reboot,
+  # and switches itself off after 60 minutes so it can't be forgotten on.
+  - platform: template
+    id: fan_test_mode
+    name: "${friendly_name} Fan Test Mode"
+    icon: mdi:fan-alert
+    entity_category: config
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - script.execute: update_fans
+      - script.execute: fan_test_timeout
+    on_turn_off:
+      - script.stop: fan_test_timeout
+      - script.execute: update_fans
+
   # Expose an ESP32 restart button to HA
   - platform: restart
     name: "${friendly_name} ESP32 Restart"

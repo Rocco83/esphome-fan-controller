@@ -156,7 +156,7 @@ Each probe is named after the board connector it plugs into, and ESPHome shows i
 | TEMP7 (J24) | A | outside, where air enters the rack | usefulness cap (outlet − inlet) | `Rack Fan TEMP7 Inlet` |
 | TEMP8 (J28) | B | in the other room | monitoring only | `Rack Fan TEMP8 Other Room` |
 
-**Buses:** odd connectors (TEMP1, 3, 5, 7) are bus A, even ones (TEMP2, 4, 6, 8) bus B. The hot zone has probes on both buses (Rear High on A, Rear Mid and Front High on B), so a whole bus failing (a cable crushed in the rack, one shorted probe pulls the whole bus down) still leaves a hot-zone reading and control carries on instead of going to the 100% emergency. Both bottom probes are on bus A. Cables: TEMP1–5 are 2 m (inside the rack), TEMP6–8 are 5 m.
+**Buses:** odd connectors (TEMP1, 3, 5, 7) are bus A, even ones (TEMP2, 4, 6, 8) bus B. The hot zone has probes on both buses (Rear High on A, Rear Mid and Front High on B), so a whole bus failing (a cable crushed in the rack, one shorted probe pulls the whole bus down) still leaves a hot-zone reading and control carries on instead of going to the 100% emergency. Both bottom probes are on bus A. Cables: TEMP1, 2, 3, 5 and 7 are 2 m; TEMP4, 6 and 8 are 5 m (Front High is too far for 2 m, while the Inlet at the bottom centre is close).
 
 A DS18B20 is identified by its 64-bit **address**, not by the connector. The name only holds if each probe goes into the connector its address is assigned to (see setup below).
 
@@ -220,8 +220,11 @@ One PID climate (`Rack Fan Thermostat`) regulates the **hot zone** and produces 
    - fan 1 runs up to *Gradient* % (default 30%) slower than fan 6, and the reduction shrinks linearly to 0 at fan 6
    - the full gradient applies once the bottom zone is *Gradient Band* (2 °C) below setpoint, and it fades to none as the bottom zone reaches the setpoint
 5. **Minimum duty.** A fan that is not stopped runs at least 20% (`fan_min_duty`).
+6. **Kick-start.** A stopped NF-F12 24V-3000 needs 25% to start (bench test: 20% and 22% leave it stopped; once running it keeps turning down to about 15%). A fan commanded below 25% that reads 0 RPM gets 25% (`fan_start_duty`) until its tach shows it turning, then drops to its target. A fan that still reads 0 at 25% shows as `Stalled`.
 
-The **manual override** (`Manual Fan Speed`) sets all six fans to the same level and bypasses the PID, the caps and the gradient.
+The **manual override** (`Manual Fan Speed`) sets all six fans to the same level and bypasses the PID, the caps and the gradient. Its slider goes from 1 to 100; turning it off returns to automatic, it does not mean 0%.
+
+**Fan test mode** (`Fan Test Mode` switch, under the device's configuration entities) is for bench tests: each fan follows its own `Fan N Test Duty` slider (0–100%), raw, with no caps, no gradient, no minimum duty and the emergency ignored. 0% really sends 0% duty. Different duties per fan show that each PWM output drives the right header. It is always off after a reboot and switches itself off after 60 minutes.
 
 Diagnostics published to Home Assistant:
 
@@ -473,8 +476,8 @@ Status: **have** = on hand, **buy** = to order, **check** = verify whether you a
 
 | Qty | Item | Why | Status |
 |---|---|---|---|
-| 5 | DS18B20 (waterproof probe), 2 m | TEMP1–TEMP5, inside the rack | have |
-| 3 | DS18B20 (waterproof probe), 5 m | TEMP6 Outlet, TEMP7 Inlet, TEMP8 Other Room | have |
+| 5 | DS18B20 (waterproof probe), 2 m | TEMP1 Rear High, TEMP2 Rear Mid, TEMP3 Rear Low, TEMP5 Front Low, TEMP7 Inlet | have |
+| 3 | DS18B20 (waterproof probe), 5 m | TEMP4 Front High, TEMP6 Outlet, TEMP8 Other Room | have |
 
 ### Mechanical
 
