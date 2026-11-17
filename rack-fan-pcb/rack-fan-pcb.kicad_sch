@@ -3829,7 +3829,7 @@
 		)
 		(uuid "1c881add-d53a-42da-ad33-f2b57df7dbb5")
 	)
-	(label "ONEWIRE_A"
+	(label "ONEWIRE_A_IO"
 		(at 68.58 124.46 180)
 		(effects
 			(font
@@ -3839,7 +3839,7 @@
 		)
 		(uuid "1d20e90a-5c50-46ef-b74b-6ca5218ad98b")
 	)
-	(label "TACH3"
+	(label "TACH3_IO"
 		(at 109.22 121.92 0)
 		(effects
 			(font
@@ -4029,7 +4029,7 @@
 		)
 		(uuid "540cb82e-1fd5-4c5f-9901-e2843d720279")
 	)
-	(label "TACH5"
+	(label "TACH5_IO"
 		(at 109.22 127 0)
 		(effects
 			(font
@@ -4109,7 +4109,7 @@
 		)
 		(uuid "688d1b3e-8ffa-43a1-b278-efa2e1335168")
 	)
-	(label "TACH4"
+	(label "TACH4_IO"
 		(at 109.22 124.46 0)
 		(effects
 			(font
@@ -4139,7 +4139,7 @@
 		)
 		(uuid "7189074b-9276-4214-ba4c-5183aca73962")
 	)
-	(label "ONEWIRE_B"
+	(label "ONEWIRE_B_IO"
 		(at 68.58 127 180)
 		(effects
 			(font
@@ -4319,7 +4319,7 @@
 		)
 		(uuid "9dfe22af-0e13-4288-88c6-1e134661c64e")
 	)
-	(label "TACH2"
+	(label "TACH2_IO"
 		(at 109.22 119.38 0)
 		(effects
 			(font
@@ -4349,7 +4349,7 @@
 		)
 		(uuid "a49c6f3b-3a0a-4c3e-b934-84e13d97ef0e")
 	)
-	(label "TACH6"
+	(label "TACH6_IO"
 		(at 109.22 132.08 0)
 		(effects
 			(font
@@ -4589,7 +4589,7 @@
 		)
 		(uuid "e1e37cf8-18cb-4a33-a2d0-124ba74a9fb0")
 	)
-	(label "TACH1"
+	(label "TACH1_IO"
 		(at 109.22 111.76 0)
 		(effects
 			(font
@@ -10139,7 +10139,7 @@
 		)
 		(uuid "e99ea4ae-3664-41a5-bc6c-52bad9f5c550")
 	)
-	(label "TACH1"
+	(label "TACH1_IO"
 		(at 144.78 95.25 180)
 		(effects
 			(font
@@ -10490,6 +10490,958 @@
 	(no_connect
 		(at 71.12 109.22)
 		(uuid "7eb7b686-760d-495e-961f-24d33de71793")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 33.02 175.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "5ae4d756-07bc-4a3d-98bc-fde053cabda9")
+		(property "Reference" "R41"
+			(at 35.56 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "22k"
+			(at 33.02 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 31.75 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 33.02 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "TACH1 series resistor: limits the current into the GPIO if +24 V touches the tach line (pull-up stays on the connector side)"
+			(at 33.02 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "b916122a-c3dd-437d-97fd-c280a8ee2e8d")
+		)
+		(pin "2"
+			(uuid "399cca20-54b3-4b9b-bf63-9170c9a60f2c")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "R41")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 33.02 171.45) (xy 33.02 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bb4f8bb3-3369-45a3-88aa-f6e2ef4ff4cb")
+	)
+	(label "TACH1"
+		(at 33.02 168.91 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "19672d94-2ad4-482c-a8b7-bf645d5a3f57")
+	)
+	(wire
+		(pts
+			(xy 33.02 179.07) (xy 33.02 181.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0310eb1d-da62-4eba-9918-45c8c1848a46")
+	)
+	(label "TACH1_IO"
+		(at 33.02 181.61 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "868a6264-ec2b-4a36-8873-3c18d9221275")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 45.72 175.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "5f69c08c-f764-41f6-a72d-b1a09bced86e")
+		(property "Reference" "R42"
+			(at 48.26 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "22k"
+			(at 45.72 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 44.45 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 45.72 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "TACH2 series resistor: limits the current into the GPIO if +24 V touches the tach line (pull-up stays on the connector side)"
+			(at 45.72 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "ed9ad0c8-2a91-4f92-be3a-3e7627f336fe")
+		)
+		(pin "2"
+			(uuid "b295a7a6-ee65-4557-94cc-ae46291ec87c")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "R42")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 45.72 171.45) (xy 45.72 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cd3e37e6-681d-4745-ad6b-64d210c9e7f1")
+	)
+	(label "TACH2"
+		(at 45.72 168.91 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "b2a28509-5421-415d-9c3b-97ea6c2a3dcf")
+	)
+	(wire
+		(pts
+			(xy 45.72 179.07) (xy 45.72 181.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c05524cb-2ea4-4b98-b4d7-df6280f25f9d")
+	)
+	(label "TACH2_IO"
+		(at 45.72 181.61 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "378f4f61-13a4-4e1e-ada8-74f583ff63e9")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 58.42 175.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "2147c76f-588d-482a-9408-d2aedc308572")
+		(property "Reference" "R43"
+			(at 60.96 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "22k"
+			(at 58.42 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 57.15 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 58.42 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "TACH3 series resistor: limits the current into the GPIO if +24 V touches the tach line (pull-up stays on the connector side)"
+			(at 58.42 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "32416911-5c9b-4745-b169-d88db5979ce0")
+		)
+		(pin "2"
+			(uuid "c7e030d7-e093-4592-8844-a82916ad9d07")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "R43")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 58.42 171.45) (xy 58.42 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a148358e-4c92-471d-ae81-5c13bc309fdc")
+	)
+	(label "TACH3"
+		(at 58.42 168.91 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "899a497a-deb4-43c1-af10-47b60590fa99")
+	)
+	(wire
+		(pts
+			(xy 58.42 179.07) (xy 58.42 181.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4fe7fb00-eafb-4706-bc91-ed32b09fed01")
+	)
+	(label "TACH3_IO"
+		(at 58.42 181.61 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "9943b98a-fda4-4d22-b357-b32071db5402")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 71.12 175.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "a00ee90e-5d06-4e6e-96d7-1340236d9216")
+		(property "Reference" "R44"
+			(at 73.66 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "22k"
+			(at 71.12 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 69.85 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 71.12 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "TACH4 series resistor: limits the current into the GPIO if +24 V touches the tach line (pull-up stays on the connector side)"
+			(at 71.12 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "f92840a4-8b53-4cd5-8097-bacf58ec5137")
+		)
+		(pin "2"
+			(uuid "ddc78f0e-07a6-445c-80cb-2ae592f3d1ca")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "R44")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 71.12 171.45) (xy 71.12 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f833c311-9851-4403-9dea-ca7c7160cc9c")
+	)
+	(label "TACH4"
+		(at 71.12 168.91 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "fd9d8264-a508-49cf-bb95-b65774bbcf29")
+	)
+	(wire
+		(pts
+			(xy 71.12 179.07) (xy 71.12 181.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3a918099-e7a4-44d0-8d8e-f89d838efaa5")
+	)
+	(label "TACH4_IO"
+		(at 71.12 181.61 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "ccf0a4e1-6083-4add-9c5a-2ae8123e9932")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 83.82 175.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "aa0ea66d-d784-44fc-859b-c0d21a20e8aa")
+		(property "Reference" "R45"
+			(at 86.36 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "22k"
+			(at 83.82 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 82.55 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 83.82 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "TACH5 series resistor: limits the current into the GPIO if +24 V touches the tach line (pull-up stays on the connector side)"
+			(at 83.82 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "34bc4a55-c826-42e6-a9a5-d951242c3a18")
+		)
+		(pin "2"
+			(uuid "8a44d078-3666-40cb-a790-32061f02b079")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "R45")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 83.82 171.45) (xy 83.82 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1b4658bb-8c7b-46f2-b4f2-eb6943099250")
+	)
+	(label "TACH5"
+		(at 83.82 168.91 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "2e5e9f0e-b50e-48d4-804a-74e7bb1998aa")
+	)
+	(wire
+		(pts
+			(xy 83.82 179.07) (xy 83.82 181.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "98bde13b-4f6e-4d33-853f-70f50d192764")
+	)
+	(label "TACH5_IO"
+		(at 83.82 181.61 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "a4da85cf-c2fb-4131-9df0-0d1d30bef34d")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 96.52 175.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "f9b812f3-9e7c-4632-9508-c23264873b03")
+		(property "Reference" "R46"
+			(at 99.06 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "22k"
+			(at 96.52 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 95.25 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 96.52 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "TACH6 series resistor: limits the current into the GPIO if +24 V touches the tach line (pull-up stays on the connector side)"
+			(at 96.52 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "16dcdabf-34e1-4a94-804b-016f96596fb5")
+		)
+		(pin "2"
+			(uuid "ea00c388-2c1a-4d19-94ef-fdbdffe8d143")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "R46")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 96.52 171.45) (xy 96.52 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a0d27ac5-bec1-4446-b45e-d5dc14af28d1")
+	)
+	(label "TACH6"
+		(at 96.52 168.91 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "6fbb4bd3-07a7-4f0b-8da1-d6ca877e533e")
+	)
+	(wire
+		(pts
+			(xy 96.52 179.07) (xy 96.52 181.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cfd1a3ca-f8bf-4f1c-b9b2-d9bdd74a1233")
+	)
+	(label "TACH6_IO"
+		(at 96.52 181.61 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "f4bd273f-e166-4472-99e3-87dfbc389823")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 109.22 175.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "6a6488a7-1590-427b-bc0f-29a5afb99426")
+		(property "Reference" "R47"
+			(at 111.76 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "220"
+			(at 109.22 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 107.95 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 109.22 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "1-Wire bus A series resistor (ESD from the probe cables)"
+			(at 109.22 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "6f3a389d-cbc5-4a4a-b649-df470dab59a3")
+		)
+		(pin "2"
+			(uuid "6a4b3c8a-a554-4201-8a53-caf7e8b4b37b")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "R47")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 109.22 171.45) (xy 109.22 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1a4478f3-2b96-4b7f-8e42-2fb8d13c9c10")
+	)
+	(label "ONEWIRE_A"
+		(at 109.22 168.91 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "2f63612b-605d-4569-8354-2ae4bd2e8d82")
+	)
+	(wire
+		(pts
+			(xy 109.22 179.07) (xy 109.22 181.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "df006561-42a4-445f-b6b9-52618ad50381")
+	)
+	(label "ONEWIRE_A_IO"
+		(at 109.22 181.61 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "96852b1b-9866-4aa8-87b5-3197ca6854d8")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 121.92 175.26 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "776e8a20-6012-4cb2-908b-741913e36158")
+		(property "Reference" "R48"
+			(at 124.46 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "220"
+			(at 121.92 175.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 120.65 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 121.92 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "1-Wire bus B series resistor (ESD from the probe cables)"
+			(at 121.92 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "ed368a64-207e-483c-b0f8-d4997e236b95")
+		)
+		(pin "2"
+			(uuid "ee03f1f2-aec9-44aa-a4fc-a9ef1b680275")
+		)
+		(instances
+			(project "rack-fan-pcb"
+				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
+					(reference "R48")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 121.92 171.45) (xy 121.92 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cad95d1b-ae45-4a4b-8516-76497986930e")
+	)
+	(label "ONEWIRE_B"
+		(at 121.92 168.91 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "7b4f715d-bf90-487f-b5b5-e7aa5dce40a5")
+	)
+	(wire
+		(pts
+			(xy 121.92 179.07) (xy 121.92 181.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "26032b43-c379-4b58-a477-df7f38691692")
+	)
+	(label "ONEWIRE_B_IO"
+		(at 121.92 181.61 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "cafff248-0e37-4b9c-838e-07ac62afba62")
 	)
 	(sheet_instances
 		(path "/"

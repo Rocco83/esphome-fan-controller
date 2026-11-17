@@ -360,6 +360,27 @@ Workarounds the board relies on:
 
 ## Open items
 
+### Backlog: board v2 and test harness
+
+**What happened (2026-11):** two WT32-ETH01 modules died **on the same board** (power LED on, no Ethernet, ESP32 hot); the first while the board was only partly assembled. The second one died while a connector was being inserted with the board powered; the fans went to 100% at that moment (fail-safe of a dead ESP32). The board's nets are correct. Most likely cause: +24 V (fan header pin 2) touching TACH (pin 3), which goes **straight to a GPIO**: the 10 kΩ is a pull-up to 3.3 V, not a series resistor. An ESD discharge while touching the board is the other candidate. Until v2: never touch the board or plug connectors while it is powered. Board checked with no module fitted, 6 fans connected and powered: 3.3 V net floating (0.1–0.3 V, no source on the board), TACH 0 V, 20 kΩ between TACH nets (2 × 10 kΩ pull-ups) as expected, 24 V–5 V > 100 kΩ. The 3.5–4 V first read as "TACH" was the PWM line: the fan pulls its PWM input up internally, and that line only reaches the 2N3904 collector, not the ESP32. So the board puts no dangerous voltage on the module; the cause was a transient while handling the live board.
+
+**v2 changes:**
+- **TACH (×6), in the schematic:** 10 kΩ pull-up on the connector side (net `TACHn`), **22 kΩ series resistor R41–R46** to the GPIO (net `TACHn_IO`). With 24 V on TACH, under 1 mA reaches the pin. Optional, not drawn: clamp diode (1N4148) to 3.3 V. J2's RX stays on the GPIO side (`TACH1_IO`), so serial flashing doesn't go through the 22 kΩ.
+- **1-Wire DQ (×2), in the schematic:** **220 Ω series resistor R47 (bus A), R48 (bus B)** between the bus (`ONEWIRE_A/B`, with its pull-up) and the GPIO (`ONEWIRE_A/B_IO`), against ESD from the long probe cables.
+- **PCB:** run *Update PCB from Schematic* (F8): it adds R41–R48 (unplaced) and moves U1's TACH/1-Wire pads and J2 pin 2 to the `_IO` nets. The existing tracks from those U1 pads then need rerouting through the new resistors.
+- **5 V rail:** 5.6 V zener / TVS.
+- **24 V input:** inrush limiter (NTC ~5 Ω in series) against the spark when the jack is plugged into a live supply (C1 470 µF charging), and a TVS (P6KE30A) against overshoot. Meanwhile: plug the jack first, then the supply into the mains.
+- **Fan headers:** keyed (Molex 47053 style), so a plug can't go in reversed or shifted.
+- Space: 8 more 0207 resistors.
+- **Hot glue over the 24 V side** (fan headers' +24 V row, input, fuse, U2 input) once assembled, so a finger or a stray wire can't reach it.
+
+**Test harness (until v2):** WT32 on a breadboard, wired to the board's U1 socket with jumper wires, **pin number to pin number** (the board mounts the module face down, the breadboard face up):
+- **TACH, 22 kΩ in series** on each wire: pins 25 (IO3), 22 (IO39), 21 (IO36), 20 (IO15), 19 (IO14), 17 (IO35). The board's 10 kΩ pull-up stays on the board side, as in v2.
+- **1-Wire:** optional 100–220 Ω on pins 7 (IO5) and 8 (IO17).
+- **Direct:** PWM pins 26, 18, 16, 15, 5, 6 (already behind 4.7 kΩ base resistors), 5 V (pin 12), GND (several), 3.3 V (pin 10, feeds the pull-ups and probes), EN (pin 4).
+- **IO0 (pin 24):** no long wire to the board. IO0 is also the 50 MHz Ethernet clock input, and a jumper wire of several cm hanging on it can make Ethernet unreliable. To flash, put the BOOT jumper (IO0 to GND) **at the module on the breadboard**, with a short wire; on the real PCB, J4 sits next to the socket and its short track is fine.
+- **New modules:** first flash over serial (factory firmware, no OTA); measure the row spacing (22.86 mm) against an old module.
+
 - **Ordered** from AISLER on 2026-11-03 (project ID `ESREGXHU`, in the board's title block). The exact files sent are in `production/` (Gerber zip, BOM, positions, IPC netlist).
 
 - **Test rig:** [`../test-rig/`](../test-rig/README.md): 2-fan breadboard rig and firmware to check every PWM and tach pin before the PCB is built. Temporary; remove after the test.

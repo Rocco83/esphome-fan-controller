@@ -455,6 +455,8 @@ Status: **have** = on hand, **buy** = to order, **check** = verify whether you a
 | 6 | R11–R16 | 100 kΩ | Pull-downs: strapping pins low at boot, floating GPIO = fan 100% | buy |
 | 6 | R21–R26 | 10 kΩ | Tach pull-ups to 3.3 V | buy |
 | 2 | R31, R32 | 4.7 kΩ | 1-Wire pull-ups, one per bus (2.2 kΩ for long cables) | buy |
+| 6 | R41–R46 | 22 kΩ (board v2) | TACH series resistors: protect the GPIOs if +24 V touches a tach line | buy |
+| 2 | R47, R48 | 220 Ω (board v2) | 1-Wire series resistors (ESD from the probe cables) | buy |
 | 1 | — | PCB from `rack-fan-pcb/` (≈ 66.5 × 87 mm) + enclosure | The board | buy |
 | 4 | H1–H4 | M3 screws + standoffs (holes not connected to GND) | Mounting | buy |
 | 3 | J2–J4 | 1 × 3 male pin header, 2.54 mm | UART (GND/RX/TX), RESET (EN), BOOT (IO0) | buy |
