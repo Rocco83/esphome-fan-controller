@@ -367,9 +367,9 @@ Workarounds the board relies on:
 **v2 changes:**
 - **TACH (×6), in the schematic:** 10 kΩ pull-up on the connector side (net `TACHn`), **22 kΩ series resistor R41–R46** to the GPIO (net `TACHn_IO`). With 24 V on TACH, under 1 mA reaches the pin. Optional, not drawn: clamp diode (1N4148) to 3.3 V. J2's RX stays on the GPIO side (`TACH1_IO`), so serial flashing doesn't go through the 22 kΩ.
 - **1-Wire DQ (×2), in the schematic:** **220 Ω series resistor R47 (bus A), R48 (bus B)** between the bus (`ONEWIRE_A/B`, with its pull-up) and the GPIO (`ONEWIRE_A/B_IO`), against ESD from the long probe cables.
-- **PCB:** run *Update PCB from Schematic* (F8): it adds R41–R48 (unplaced) and moves U1's TACH/1-Wire pads and J2 pin 2 to the `_IO` nets. The existing tracks from those U1 pads then need rerouting through the new resistors.
+- **PCB:** run *Update PCB from Schematic* (F8): it adds R41–R48, TH1, JP1 and D2 (unplaced), moves D1's anode to `VIN_NTC`, and moves U1's TACH/1-Wire pads and J2 pin 2 to the `_IO` nets. The existing tracks from those U1 pads then need rerouting through the new resistors.
 - **5 V rail:** 5.6 V zener / TVS.
-- **24 V input:** inrush limiter (NTC ~5 Ω in series) against the spark when the jack is plugged into a live supply (C1 470 µF charging), and a TVS (P6KE30A) against overshoot. Meanwhile: plug the jack first, then the supply into the mains.
+- **24 V input, in the schematic:** **TH1**, NTC 5 Ω cold, ≥ 2 A (e.g. 5D-9, disc 9 mm, 5 mm pitch) in series between F1 and D1 (new net `VIN_NTC`), against the spark when the jack is plugged into a live supply (C1 470 µF charging). It only limits when cold. **JP1** (1 × 2 pin header, `BYPASS TH1`) sits in parallel: with its jumper cap on, TH1 is shorted, so the board also works without TH1. The cap carries the full 24 V current (~1.2 A). **D2**, P6KE30CA bidirectional TVS (DO-15) across +24 V / GND, against overshoot; bidirectional, so it can't go in the wrong way. Meanwhile: plug the jack first, then the supply into the mains.
 - **Fan headers:** keyed (Molex 47053 style), so a plug can't go in reversed or shifted.
 - Space: 8 more 0207 resistors.
 - **Hot glue over the 24 V side** (fan headers' +24 V row, input, fuse, U2 input) once assembled, so a finger or a stray wire can't reach it.
