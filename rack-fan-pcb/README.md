@@ -219,8 +219,8 @@ Pins 14–26 are one header row, 1–13 the other. "Pin" is the WT32 header pin,
 | 2 | — | GND | | | |
 | 3 | 3V3 | — | Same rail as pin 10 | | Unconnected |
 | 4 | EN | **EN** | C3 to GND | | Adds ~1.5–2 s of boot delay |
-| 5 | IO32 | **PWM5** | No pull at reset: fail-safe PWM | Tach, 1-Wire | None |
-| 6 | IO33 | **PWM6** | No pull at reset: fail-safe PWM | Tach, 1-Wire | None |
+| 5 | IO32 | **PWM6** | No pull at reset: fail-safe PWM | Tach, 1-Wire | None (v2: swapped with PWM5 for routing) |
+| 6 | IO33 | **PWM5** | No pull at reset: fail-safe PWM | Tach, 1-Wire | None (v2: swapped with PWM6 for routing) |
 | 7 | IO5 | **ONEWIRE_A** | Module LED3: the best use is 1-Wire. Strapping pin whose default is high, kept by the bus pull-up | Tach (tight: LED current against the 2 mA tach rating). PWM would stop its fan during reset (pull-up + LED) | LED3 blinks with bus traffic |
 | 8 | IO17 | **ONEWIRE_B** | Module LED4: the best use is 1-Wire | Tach (tight, as above). PWM would stop its fan during reset (LED pull-up) | LED4 blinks with bus traffic |
 | 9 | — | GND | | | |
@@ -369,7 +369,7 @@ Workarounds the board relies on:
 - **1-Wire DQ (×2), in the schematic:** **220 Ω series resistor R47 (bus A), R48 (bus B)** between the bus (`ONEWIRE_A/B`, with its pull-up) and the GPIO (`ONEWIRE_A/B_IO`), against ESD from the long probe cables.
 - **PCB:** run *Update PCB from Schematic* (F8): it adds R41–R48, TH1, JP1 and D2 (unplaced), moves D1's anode to `VIN_NTC`, and moves U1's TACH/1-Wire pads and J2 pin 2 to the `_IO` nets. The existing tracks from those U1 pads then need rerouting through the new resistors.
 - **5 V rail:** 5.6 V zener / TVS.
-- **24 V input, in the schematic:** **TH1**, NTC 5 Ω cold, ≥ 2 A (e.g. 5D-9, disc 9 mm, 5 mm pitch) in series between F1 and D1 (new net `VIN_NTC`), against the spark when the jack is plugged into a live supply (C1 470 µF charging). It only limits when cold. **JP1** (1 × 2 pin header, `BYPASS TH1`) sits in parallel: with its jumper cap on, TH1 is shorted, so the board also works without TH1. The cap carries the full 24 V current (~1.2 A). **D2**, P6KE30CA bidirectional TVS (DO-15) across +24 V / GND, against overshoot; bidirectional, so it can't go in the wrong way. Meanwhile: plug the jack first, then the supply into the mains.
+- **24 V input, in the schematic:** **TH1**, NTC 5 Ω cold, ≥ 2 A (e.g. 5D-9, disc 9 mm, 5 mm pitch) in series between F1 and D1 (new net `VIN_NTC`), against the spark when the jack is plugged into a live supply (C1 470 µF charging). It only limits when cold. **JP1** (1 × 3 pin header, `BYPASS TH1`: 1 VIN_FUSED, 2 VIN_NTC, 3 not connected) sits in parallel: cap on 1-2 shorts TH1, so the board also works without TH1; cap on 2-3 is the parking position (NTC active). The cap carries the full 24 V current (~1.2 A). **D2**, P6KE30CA bidirectional TVS (DO-15) across +24 V / GND, against overshoot; bidirectional, so it can't go in the wrong way. Meanwhile: plug the jack first, then the supply into the mains.
 - **Fan headers:** keyed (Molex 47053 style), so a plug can't go in reversed or shifted.
 - Space: 8 more 0207 resistors.
 - **Enclosure (v2):** board **86 × 70 mm**, rotated so the RJ45 exits a short wall. The box has 6 posts Ø 6 mm: 4 with screw holes at **80 × 60 mm** (H1–H4, locked) and 2 at the middle of the 80 mm sides (rule areas "SUPPORT MID": no pads, footprints or vias within Ø 8 mm; tracks allowed). Box: inner width ~74 mm (posts 7 mm from the inner wall, 9.5 mm from the outer one, wall 2.5–3 mm); the RJ45 may protrude at most 2.5 mm past the outer wall. RJ45 edge of the board 1.8 mm from the pin 12/15 row. **To check at the end: the barrel jack position** (too far from the edge today).

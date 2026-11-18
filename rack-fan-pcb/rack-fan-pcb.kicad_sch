@@ -4514,7 +4514,7 @@
 		)
 		(uuid "2fe45e02-77c2-42ac-a14c-d629e9464d59")
 	)
-	(label "PWM6"
+	(label "PWM5"
 		(at 68.58 121.92 180)
 		(effects
 			(font
@@ -4774,7 +4774,7 @@
 		)
 		(uuid "7b2fea9a-969e-43c4-a174-2b5eaa841945")
 	)
-	(label "PWM5"
+	(label "PWM6"
 		(at 68.58 119.38 180)
 		(effects
 			(font
@@ -12287,7 +12287,7 @@
 		(uuid "3a722f74-4e87-4705-a41f-1c9eb3bbe8da")
 	)
 	(symbol
-		(lib_id "Jumper:Jumper_2_Open")
+		(lib_id "Connector_Generic:Conn_01x03")
 		(at 284.48 60.96 0)
 		(unit 1)
 		(body_style 1)
@@ -12298,7 +12298,7 @@
 		(dnp no)
 		(uuid "e1961ff4-ea61-4904-84a6-5d006b953425")
 		(property "Reference" "JP1"
-			(at 284.48 58.166 0)
+			(at 284.48 55.88 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12308,7 +12308,7 @@
 			)
 		)
 		(property "Value" "BYPASS TH1"
-			(at 284.48 63.246 0)
+			(at 284.48 66.04 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12317,7 +12317,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
 			(at 284.48 60.96 0)
 			(hide yes)
 			(show_name no)
@@ -12339,7 +12339,7 @@
 				)
 			)
 		)
-		(property "Description" "Bypass for TH1 (NTC inrush limiter): jumper cap on = NTC shorted. Fit the cap, or a wire link, when TH1 is not fitted. Carries the full 24 V current (~1.2 A)."
+		(property "Description" "Bypass for TH1 (NTC inrush limiter): 1 VIN_FUSED, 2 VIN_NTC, 3 not connected (parking). Cap on 1-2 = NTC shorted (fit it, or a wire link, when TH1 is not fitted); cap on 2-3 = parked, NTC active. Carries the full 24 V current (~1.2 A)."
 			(at 284.48 60.96 0)
 			(hide yes)
 			(show_name no)
@@ -12356,6 +12356,9 @@
 		(pin "2"
 			(uuid "cf1349b0-6cfe-4873-938c-c7a44018f934")
 		)
+		(pin "3"
+			(uuid "3af6e7e1-96e6-4e0b-a279-8844d143a5ff")
+		)
 		(instances
 			(project "rack-fan-pcb"
 				(path "/cbabbe14-2143-4461-bf60-c899ff8d79d7"
@@ -12367,43 +12370,47 @@
 	)
 	(wire
 		(pts
+			(xy 279.4 58.42) (xy 276.86 58.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7ce670ff-a5f0-4d8b-8178-a5f0c4d19eeb")
+	)
+	(label "VIN_FUSED"
+		(at 276.86 58.42 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "64c5b1e1-13f9-4df9-894f-504622ee570e")
+	)
+	(wire
+		(pts
 			(xy 279.4 60.96) (xy 276.86 60.96)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "7e86bea4-254d-4263-8d98-ad4385aef987")
+		(uuid "3fe54594-879b-43f7-a767-d79e7ebeaa0c")
 	)
-	(label "VIN_FUSED"
+	(label "VIN_NTC"
 		(at 276.86 60.96 180)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right)
+			(justify right bottom)
 		)
-		(uuid "89473a38-0dbf-4d36-92bf-a20ddd02dd74")
+		(uuid "003b8fb4-cda0-4fdd-a8d2-74a1504734b2")
 	)
-	(wire
-		(pts
-			(xy 289.56 60.96) (xy 292.1 60.96)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9f2278f6-25fd-45d3-9a59-18532a5761b3")
-	)
-	(label "VIN_NTC"
-		(at 292.1 60.96 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "b1ee506a-688b-439d-b665-4318fad5ddc5")
+	(no_connect
+		(at 279.4 63.5)
+		(uuid "791ed261-4a2b-4f4d-96d4-cb92a2e7f1d7")
 	)
 	(sheet_instances
 		(path "/"

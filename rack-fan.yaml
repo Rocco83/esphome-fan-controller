@@ -158,10 +158,10 @@ packages:
     vars: { n: "4", pwm_pin: GPIO2, pwm_strapping: "true", tach_pin: GPIO15, tach_pullup: "true", tach_strapping: "true" }
   fan5: !include  # pin 5 / pin 19
     file: rack-fan-channel.yaml
-    vars: { n: "5", pwm_pin: GPIO32, pwm_strapping: "false", tach_pin: GPIO14, tach_pullup: "true", tach_strapping: "false" }
+    vars: { n: "5", pwm_pin: GPIO33, pwm_strapping: "false", tach_pin: GPIO14, tach_pullup: "true", tach_strapping: "false" }
   fan6: !include  # pin 6 / pin 17
     file: rack-fan-channel.yaml
-    vars: { n: "6", pwm_pin: GPIO33, pwm_strapping: "false", tach_pin: GPIO35, tach_pullup: "false", tach_strapping: "false" }
+    vars: { n: "6", pwm_pin: GPIO32, pwm_strapping: "false", tach_pin: GPIO35, tach_pullup: "false", tach_strapping: "false" }
 
 
 #########################

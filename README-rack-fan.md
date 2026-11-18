@@ -348,8 +348,8 @@ The "Pin" column is the WT32 header pin number (footprint pad). Pins 14–26 are
 | 2 | — | GND | None |
 | 3 | 3V3 | X | Same rail as pin 10; unconnected |
 | 4 | EN | EN | C3 (470 µF) to GND: delays the ESP32's start by about 1.5–2 s so the supply settles first. Fixes the known WT32 boot hang on slow-ramping supplies |
-| 5 | IO32 | PWM5 | None |
-| 6 | IO33 | PWM6 | None |
+| 5 | IO32 | PWM6 | None |
+| 6 | IO33 | PWM5 | None |
 | 7 | IO5 | ONEWIRE_A | The module's LED3 blinks with bus traffic and adds about 1.3 mA to the 1-Wire pull-up (fine for the DS18B20) |
 | 8 | IO17 | ONEWIRE_B | The module's LED4 blinks with bus traffic and adds about 1.3 mA to the 1-Wire pull-up (fine for the DS18B20) |
 | 9 | — | GND | None |
@@ -458,7 +458,7 @@ Status: **have** = on hand, **buy** = to order, **check** = verify whether you a
 | 6 | R41–R46 | 22 kΩ (board v2) | TACH series resistors: protect the GPIOs if +24 V touches a tach line | buy |
 | 2 | R47, R48 | 220 Ω (board v2) | 1-Wire series resistors (ESD from the probe cables) | buy |
 | 1 | TH1 | NTC 5 Ω, ≥ 2 A, disc 9 mm, 5 mm pitch (e.g. 5D-9) (board v2) | Inrush limiter: no spark when plugging the jack into a live supply. Optional: with JP1 closed it is bypassed | buy |
-| 1 | JP1 | 1 × 2 pin header + jumper cap (board v2) | Bypass for TH1 | buy |
+| 1 | JP1 | 1 × 3 pin header + jumper cap (board v2) | Bypass for TH1 (pin 3 = parking) | buy |
 | 1 | D2 | P6KE30CA, bidirectional TVS, DO-15 (board v2) | Clamps overshoot on the 24 V input | buy |
 | 1 | — | PCB from `rack-fan-pcb/` (≈ 66.5 × 87 mm) + enclosure | The board | buy |
 | 4 | H1–H4 | M3 screws + standoffs (holes not connected to GND) | Mounting | buy |

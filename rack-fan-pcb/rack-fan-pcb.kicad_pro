@@ -70,20 +70,7 @@
         }
       },
       "diff_pair_dimensions": [],
-      "drc_exclusions": [
-        [
-          "silk_edge_clearance|51282600|74630000|c217c119-f743-43e4-b496-bd9067b09f3f|bf298c81-b357-47bd-9c20-8daecf203fd4",
-          ""
-        ],
-        [
-          "silk_edge_clearance|60474800|49784000|c217c119-f743-43e4-b496-bd9067b09f3f|c4112b3d-2ac3-46f8-be00-13cf56190520",
-          ""
-        ],
-        [
-          "silk_edge_clearance|69674800|49784000|c217c119-f743-43e4-b496-bd9067b09f3f|6e14e104-be13-4ff4-ae8f-1e86ee97e0e5",
-          ""
-        ]
-      ],
+      "drc_exclusions": [],
       "meta": {
         "version": 2
       },
@@ -589,6 +576,10 @@
       {
         "netclass": "Power",
         "pattern": "/VIN_FUSED"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "/VIN_NTC"
       },
       {
         "netclass": "Supply_5V",
