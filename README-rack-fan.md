@@ -460,6 +460,8 @@ Status: **have** = on hand, **buy** = to order, **check** = verify whether you a
 | 1 | TH1 | NTC 5 Ω, ≥ 2 A, disc 9 mm, 5 mm pitch (e.g. 5D-9) (board v2) | Inrush limiter: no spark when plugging the jack into a live supply. Optional: with JP1 closed it is bypassed | buy |
 | 1 | JP1 | 1 × 3 pin header + jumper cap (board v2) | Bypass for TH1 (pin 3 = parking) | buy |
 | 1 | D2 | P6KE30CA, bidirectional TVS, DO-15 (board v2) | Clamps overshoot on the 24 V input | buy |
+| 3 | D3–D5 | LED 3 mm THT: red (24 V), yellow (5 V), green (3.3 V) (board v2) | Rail indicators, ~2 mA each. The 3.3 V one must be red/yellow/green (blue/white do not light at 3.3 V) | buy |
+| 3 | R51–R53 | 10 kΩ, 1.5 kΩ, 680 Ω (board v2) | LED series resistors for 24 V, 5 V, 3.3 V | buy |
 | 1 | — | PCB from `rack-fan-pcb/` (≈ 66.5 × 87 mm) + enclosure | The board | buy |
 | 4 | H1–H4 | M3 screws + standoffs (holes not connected to GND) | Mounting | buy |
 | 3 | J2–J4 | 1 × 3 male pin header, 2.54 mm | UART (GND/RX/TX), RESET (EN), BOOT (IO0) | buy |

@@ -370,16 +370,19 @@ Workarounds the board relies on:
 - **PCB:** run *Update PCB from Schematic* (F8): it adds R41–R48, TH1, JP1 and D2 (unplaced), moves D1's anode to `VIN_NTC`, and moves U1's TACH/1-Wire pads and J2 pin 2 to the `_IO` nets. The existing tracks from those U1 pads then need rerouting through the new resistors.
 - **5 V rail:** 5.6 V zener / TVS.
 - **24 V input, in the schematic:** **TH1**, NTC 5 Ω cold, ≥ 2 A (e.g. 5D-9, disc 9 mm, 5 mm pitch) in series between F1 and D1 (new net `VIN_NTC`), against the spark when the jack is plugged into a live supply (C1 470 µF charging). It only limits when cold. **JP1** (1 × 3 pin header, `BYPASS TH1`: 1 VIN_FUSED, 2 VIN_NTC, 3 not connected) sits in parallel: cap on 1-2 shorts TH1, so the board also works without TH1; cap on 2-3 is the parking position (NTC active). The cap carries the full 24 V current (~1.2 A). **D2**, P6KE30CA bidirectional TVS (DO-15) across +24 V / GND, against overshoot; bidirectional, so it can't go in the wrong way. Meanwhile: plug the jack first, then the supply into the mains.
+- **Rail indicator LEDs, in the schematic:** D3 (red, +24V, R51 10 kΩ), D4 (yellow, +5V, R52 1.5 kΩ), D5 (green, +3V3, R53 680 Ω), each rail → resistor → LED → GND at about 2 mA. 3 mm THT LEDs (`LED_THT:LED_D3.0mm`, pin 1 = cathode, square pad). Not yet on the PCB: F8 adds them unplaced.
 - **Fan headers:** keyed (Molex 47053 style), so a plug can't go in reversed or shifted.
 - Space: 8 more 0207 resistors.
 - **Enclosure (v2):** board **86 × 70 mm**, rotated so the RJ45 exits a short wall. The box has 6 posts Ø 6 mm: 4 with screw holes at **80 × 60 mm** (H1–H4, locked) and 2 at the middle of the 80 mm sides (rule areas "SUPPORT MID": no pads, footprints or vias within Ø 8 mm; tracks allowed). Box: inner width ~74 mm (posts 7 mm from the inner wall, 9.5 mm from the outer one, wall 2.5–3 mm); the RJ45 may protrude at most 2.5 mm past the outer wall. RJ45 edge of the board 1.8 mm from the pin 12/15 row. **To check at the end: the barrel jack position** (too far from the edge today).
 - **Hot glue over the 24 V side** (fan headers' +24 V row, input, fuse, U2 input) once assembled, so a finger or a stray wire can't reach it.
 
 **Test harness (until v2):** WT32 on a breadboard, wired to the board's U1 socket with jumper wires, **pin number to pin number** (the board mounts the module face down, the breadboard face up):
-- **TACH, 22 kΩ in series** on each wire: pins 25 (IO3), 22 (IO39), 21 (IO36), 20 (IO15), 19 (IO14), 17 (IO35). The board's 10 kΩ pull-up stays on the board side, as in v2.
+- **TACH, 22 kΩ in series** on each wire: pins 22 (IO39), 21 (IO36), 20 (IO15), 19 (IO14), 17 (IO35). The board's 10 kΩ pull-up stays on the board side, as in v2.
+- **Pin 25 (IO3) direct, no 22 kΩ:** it is also RX0. Through 22 kΩ plus the jumper-wire capacitance, serial flashing from J2 loses about half the packets (measured: 20/40 register reads failed; 40/40 with the resistor bypassed).
 - **1-Wire:** optional 100–220 Ω on pins 7 (IO5) and 8 (IO17).
 - **Direct:** PWM pins 26, 18, 16, 15, 5, 6 (already behind 4.7 kΩ base resistors), 5 V (pin 12), GND (several), 3.3 V (pin 10, feeds the pull-ups and probes), EN (pin 4).
-- **IO0 (pin 24):** no long wire to the board. IO0 is also the 50 MHz Ethernet clock input, and a jumper wire of several cm hanging on it can make Ethernet unreliable. To flash, put the BOOT jumper (IO0 to GND) **at the module on the breadboard**, with a short wire; on the real PCB, J4 sits next to the socket and its short track is fine.
+- **IO0 (pin 24): wire only while flashing.** IO0 is also the 50 MHz Ethernet clock input: connect it directly to the board (J4 BOOT, pad 1 = square pad) to enter the bootloader, then disconnect it again for normal running, since a long wire on the clock can stop Ethernet. On the v1 board the J4 silkscreen is offset by about 1.2 mm towards pin 3: go by the square pad.
+- **Drawings:** `test-harness-wt32.png` (module face up) and `test-harness-wt32-mirrored.png` (as the face-down socket on the board), in this directory.
 - **New modules:** first flash over serial (factory firmware, no OTA); measure the row spacing (22.86 mm) against an old module.
 
 - **Ordered** from AISLER on 2026-11-03 (project ID `ESREGXHU`, in the board's title block). The exact files sent are in `production/` (Gerber zip, BOM, positions, IPC netlist).
